@@ -10,6 +10,8 @@
 #   namcap PKGBUILD
 #   makepkg -f && namcap cirrocast-git-*.pkg.tar.zst
 #   cirrocast-git --version && man -w cirrocast && pacman -Ql cirrocast-git | grep -c completions  # 3
+# prepare() also rebuilds the bundled city table from the GeoNames cities15000 dump, so the table in
+# this package is newer than the one committed with the upstream tag.
 
 pkgname=cirrocast-git
 pkgver=1.2.0.r20.g06aa8fd
@@ -23,8 +25,34 @@ makedepends=('cargo' 'git' 'jq' 'rust')
 provides=('cirrocast')
 conflicts=('cirrocast')
 options=('!lto' '!debug')
-source=("$pkgname::git+https://github.com/YangtseSu/cirrocast.git")
-sha256sums=('SKIP')
+
+# The bundled city table. The release package ships the snapshot that was committed with the tag;
+# this `-git` package rebuilds the table on every run, so a rebuild picks up the cities and keys
+# that GeoNames added since the last release. The dump is a source entry, so `makepkg` downloads it
+# before prepare() and the build itself needs no network.
+_geodumpname=cities15000.zip
+
+source=("$pkgname::git+https://github.com/YangtseSu/cirrocast.git"
+        "$_geodumpname::https://download.geonames.org/export/dump/cities15000.zip")
+sha256sums=('SKIP' 'SKIP')
+
+prepare() {
+  cd "$pkgname"
+  # Rebuilds `src/geo/data` from the downloaded dump with the tool the developer runs by hand. The
+  # binary embeds those files with `include_bytes!`, so the refresh must happen before build().
+  cargo run --release --locked --target "$(_triple)" -p geo-table -- \
+    "$srcdir/$_geodumpname" src/geo/data
+
+  # A truncated download would still decode into a table that silently misses rows. The SNAPSHOT
+  # record is written only after a complete pass, so its row count is the proof.
+  local rows
+  rows="$(sed -n 's/^rows = //p' src/geo/data/SNAPSHOT)"
+  if [[ -z "$rows" || "$rows" -lt 30000 ]]; then
+    printf 'cirrocast-git: geo refresh produced %s rows, the dump is incomplete\n' "${rows:-none}" >&2
+    exit 1
+  fi
+  printf 'cirrocast-git: geo table refreshed (%s rows)\n' "$rows"
+}
 
 # Rust's target triple for both supported architectures is exactly `<arch>-unknown-linux-gnu`, and
 # `$CARCH` already holds the architecture, so nothing has to be mapped by hand. There is no
