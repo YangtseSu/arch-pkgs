@@ -1,0 +1,13 @@
+*
+!.gitignore
+!README.md
+!REUSE.toml
+!LICENSES/
+!LICENSES/**
+!*/
+!*/.gitignore
+!*/PKGBUILD
+!*/LICENSE
+!*/LICENSES/
+!*/LICENSES/**
+!*/REUSE.toml

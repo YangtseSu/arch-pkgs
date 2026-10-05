@@ -1,0 +1,57 @@
+# Maintainer: yangtse <yangtse at users.noreply.github.com>
+
+pkgname=zlib-git
+pkgver=v0.0.8.r2.g6a299fd
+pkgrel=1
+pkgdesc='Command-line tool for Z-Library to search, download, and send books to Kindle'
+arch=('x86_64' 'aarch64')
+url='https://github.com/heartleo/zlib'
+license=('MIT')
+depends=('glibc')
+makedepends=('gcc' 'git' 'go')
+options=('!strip' '!debug')
+source=("$pkgname::git+https://github.com/heartleo/zlib.git")
+sha256sums=('SKIP')
+
+prepare() {
+  cd "$pkgname"
+  go mod download
+}
+
+pkgver() {
+  cd "$pkgname"
+  git describe --tags --long --abbrev=7 | sed 's/\([^-]*-g\)/r\1/;s/-/./g'
+}
+
+build() {
+  cd "$pkgname"
+  export CGO_ENABLED=1
+  export GOFLAGS=-mod=mod
+  export GOPROXY=off
+  local modver
+  modver=$(git describe --tags --abbrev=0)
+  go build \
+    -mod=mod \
+    -buildmode=pie \
+    -trimpath \
+    -ldflags "-s -w \
+      -X github.com/heartleo/zlib.Version=${modver#v} \
+      -X github.com/heartleo/zlib.Commit=$(git rev-parse HEAD) \
+      -X github.com/heartleo/zlib.Date=$(git show -s --format=%cI HEAD) \
+      -linkmode=external -extldflags=-Wl,-z,relro,-z,now" \
+    -o zlib \
+    ./cmd/zlib
+}
+
+check() {
+  cd "$pkgname"
+  export CGO_ENABLED=0
+  go test ./...
+}
+
+package() {
+  install -Dm755 "$pkgname/zlib" "$pkgdir/usr/bin/zlib"
+  install -Dm644 "$pkgname/LICENSE" -t "$pkgdir/usr/share/licenses/$pkgname/"
+  install -Dm644 "$pkgname/README.md" -t "$pkgdir/usr/share/doc/$pkgname/"
+  install -Dm644 "$pkgname/README.zh.md" -t "$pkgdir/usr/share/doc/$pkgname/"
+}
