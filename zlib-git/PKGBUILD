@@ -1,7 +1,7 @@
 # Maintainer: yangtse <yangtse at users.noreply.github.com>
 
 pkgname=zlib-git
-pkgver=v0.0.8.r2.g6a299fd
+pkgver=0.0.8.r2.g6a299fd
 pkgrel=1
 pkgdesc='Command-line tool for Z-Library to search, download, and send books to Kindle'
 arch=('x86_64' 'aarch64')
@@ -20,7 +20,7 @@ prepare() {
 
 pkgver() {
   cd "$pkgname"
-  git describe --tags --long --abbrev=7 | sed 's/\([^-]*-g\)/r\1/;s/-/./g'
+  git describe --long --abbrev=7 | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
 }
 
 build() {
