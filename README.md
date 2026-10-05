@@ -6,6 +6,7 @@ My personal Arch Linux PKGBUILDs. These packages are not in the AUR.
 
 | Package | Upstream | Description |
 | --- | --- | --- |
+| [cirrocast-git](cirrocast-git/) | <https://github.com/YangtseSu/cirrocast> | Terminal weather client with pluggable backends |
 | [zlib-git](zlib-git/) | <https://github.com/heartleo/zlib> | Command-line tool for Z-Library |
 
 ## Use
