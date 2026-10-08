@@ -1,13 +1,22 @@
+# makepkg writes `src/` and `pkg/` next to the PKGBUILD, downloads sources into the package
+# directory (`cities15000.zip`, `*.pkg.tar.zst`) and keeps a bare clone in a directory named after
+# the package. Listing those artifacts one by one rots, so ignore the whole tree and re-include the
+# files that are maintained below; a new file type has to be added here on purpose.
 *
-!.gitignore
-!README.md
-!REUSE.toml
-!LICENSES/
-!LICENSES/**
-!*/
-!*/.gitignore
-!*/PKGBUILD
-!*/LICENSE
-!*/LICENSES/
-!*/LICENSES/**
-!*/REUSE.toml
+
+# Repository metadata.
+!/.gitignore
+!/README.md
+!/REUSE.toml
+!/LICENSES/
+!/LICENSES/**
+
+# One directory per package, directly below the root. Only package metadata is tracked; `src/`,
+# `pkg/` and the clone stay ignored with everything else. Local sources and patches (a PKGBUILD
+# `source=()` entry that is not a URL) have to be re-included here by name.
+!/*/
+!/*/PKGBUILD
+!/*/LICENSE
+!/*/LICENSES/
+!/*/LICENSES/**
+!/*/REUSE.toml
