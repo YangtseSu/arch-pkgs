@@ -14,7 +14,7 @@
 # this package is newer than the one committed with the upstream tag.
 
 pkgname=cirrocast-git
-pkgver=1.2.0.r20.g06aa8fd
+pkgver=1.4.0.r2.g635e9a4
 pkgrel=1
 pkgdesc="Terminal weather client with pluggable backends and wttr.in-style output"
 arch=('x86_64' 'aarch64')
