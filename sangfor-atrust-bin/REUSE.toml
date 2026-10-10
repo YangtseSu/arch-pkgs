@@ -1,0 +1,20 @@
+version = 1
+
+# The PKGBUILD and its local sources come from the AUR package of the same name (plus this fork's
+# fixes), and are published here under the repository's usual 0BSD policy.
+[[annotations]]
+path = [
+    "PKGBUILD",
+    "atrust-launcher.sh",
+    "atrust-loginctl",
+    "atrust-daemon-path.conf",
+    "atrust-daemon-shutdown.conf",
+    "atrust-daemon-curl-preload.conf",
+    "bsod_checker.js",
+    "sangfor-atrust-bin.install",
+]
+SPDX-FileCopyrightText = [
+    "sinbud2004 <sinbud2004@gmail.com> and contributors",
+    "Yangtse Su <yangtsesu@gmail.com>",
+]
+SPDX-License-Identifier = "0BSD"

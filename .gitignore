@@ -20,3 +20,12 @@
 !/*/LICENSES/
 !/*/LICENSES/**
 !/*/REUSE.toml
+
+# sangfor-atrust-bin's local sources (and its `install=` hook file).
+!/sangfor-atrust-bin/atrust-launcher.sh
+!/sangfor-atrust-bin/atrust-loginctl
+!/sangfor-atrust-bin/atrust-daemon-path.conf
+!/sangfor-atrust-bin/atrust-daemon-shutdown.conf
+!/sangfor-atrust-bin/atrust-daemon-curl-preload.conf
+!/sangfor-atrust-bin/bsod_checker.js
+!/sangfor-atrust-bin/sangfor-atrust-bin.install

@@ -1,12 +1,13 @@
 # arch-pkgs
 
-My personal Arch Linux PKGBUILDs. These packages are not in the AUR.
+My personal Arch Linux PKGBUILDs. These packages are not in the AUR, except where a row says otherwise.
 
 ## Packages
 
 | Package | Upstream | Description |
 | --- | --- | --- |
 | [cirrocast-git](cirrocast-git/) | <https://github.com/YangtseSu/cirrocast> | Terminal weather client with pluggable backends |
+| [sangfor-atrust-bin](sangfor-atrust-bin/) | <https://www.sangfor.com/> | Sangfor aTrust SDP client (fork of the AUR package of the same name, with the Arch fixes: bundled curl/SQLCipher preloads and the libmmkv exec-stack patch) |
 | [zlib-git](zlib-git/) | <https://github.com/heartleo/zlib> | Command-line tool for Z-Library |
 
 ## Use
