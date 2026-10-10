@@ -38,8 +38,15 @@ if pgrep -f "^$APP/aTrustTray --no-sandbox" >/dev/null; then
 fi
 
 if ! systemctl is-active --quiet "$SVC"; then
-    if ! systemctl start "$SVC"; then
-        printf 'atrust: could not start %s (polkit authentication cancelled?); the tray will show no connection\n' "$SVC" >&2
+    if systemctl start "$SVC"; then
+        # A forking start returns once aTrustAgent has forked; the plugin daemon behind it needs
+        # a moment before the tray's first query, otherwise the client reports the core service
+        # as not started
+        sleep 2
+    else
+        printf 'atrust: could not start %s; authenticate the polkit prompt, or run "systemctl start %s" as root\n' "$SVC" "$SVC" >&2
+        command -v notify-send >/dev/null 2>&1 &&
+            notify-send -u critical atrust "$SVC is not running. Authenticate the polkit prompt, or run 'systemctl start $SVC' as root."
     fi
 fi
 

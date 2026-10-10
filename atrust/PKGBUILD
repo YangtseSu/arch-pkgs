@@ -27,7 +27,7 @@
 pkgname=atrust
 _pkgname=aTrust
 pkgver=2.5.16.30
-pkgrel=1
+pkgrel=2
 pkgdesc='Sangfor SDP/SSL VPN client (prebuilt, bundled Electron)'
 arch=('x86_64')
 url='https://www.sangfor.com/'
@@ -56,7 +56,7 @@ source=(
     'bsod_checker.js'
 )
 sha256sums=('aa8ba93532ae250dcab3d75d3b103fb01a93b97b49cbc6d9066c5ed1f70b75a6'
-            '866f5380ee5a889acc041dcca70dc65076946076b125eefa0fb7f1ea9c96591c'
+            '31639e285ff41180fb09a7e5d4f5ba7c58c63aad27bef6f3c08d2230cf56cbab'
             '08bb8edf82591f381fc3c2f2a34f77151f489c41250b57696a01be43da4482e2'
             '3dec928c5ef9d99199d9a2bb4d7efaa82a7fc57fa0d6e201918d1027c85a5831'
             'ae82a7e0575d2ed8778134fc7d5c9c85001c955a7d26710a13101ff2363c53e6')
