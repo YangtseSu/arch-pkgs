@@ -7,7 +7,7 @@ My personal Arch Linux PKGBUILDs. These packages are not in the AUR, except wher
 | Package | Upstream | Description |
 | --- | --- | --- |
 | [cirrocast-git](cirrocast-git/) | <https://github.com/YangtseSu/cirrocast> | Terminal weather client with pluggable backends |
-| [sangfor-atrust-bin](sangfor-atrust-bin/) | <https://www.sangfor.com/> | Sangfor aTrust SDP client (fork of the AUR package of the same name, with the Arch fixes: bundled curl/SQLCipher preloads and the libmmkv exec-stack patch) |
+| [atrust](atrust/) | <https://www.sangfor.com/> | Sangfor aTrust SDP client (repack of the vendor deb; bundled Electron kept, root daemon started and stopped by the tray launcher, bundled-curl/SQLCipher preloads and the libmmkv exec-stack patch applied) |
 | [zlib-git](zlib-git/) | <https://github.com/heartleo/zlib> | Command-line tool for Z-Library |
 
 ## Use

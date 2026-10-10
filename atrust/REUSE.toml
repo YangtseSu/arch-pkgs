@@ -1,0 +1,21 @@
+version = 1
+
+# The PKGBUILD and its local sources are published from this repository under its usual 0BSD
+# policy. The aTrust client itself is Sangfor's non-free software and is not covered here.
+[[annotations]]
+path = [
+    "PKGBUILD",
+    "atrust-launcher.sh",
+    "atrust-daemon-curl.conf",
+    "atrust-daemon-shutdown.conf",
+]
+SPDX-FileCopyrightText = "Yangtse Su <yangtsesu@gmail.com>"
+SPDX-License-Identifier = "0BSD"
+
+# bsod_checker.js is the client's own minified file with a one-line fix, taken from the AUR
+# packages atrust-bin (zxp19821005) and sangfor-atrust-bin (sinbud2004); it stays under the
+# client's terms.
+[[annotations]]
+path = ["bsod_checker.js"]
+SPDX-FileCopyrightText = "Sangfor Technologies and AUR contributors"
+SPDX-License-Identifier = "LicenseRef-Sangfor-EULA"

@@ -21,11 +21,9 @@
 !/*/LICENSES/**
 !/*/REUSE.toml
 
-# sangfor-atrust-bin's local sources (and its `install=` hook file).
-!/sangfor-atrust-bin/atrust-launcher.sh
-!/sangfor-atrust-bin/atrust-loginctl
-!/sangfor-atrust-bin/atrust-daemon-path.conf
-!/sangfor-atrust-bin/atrust-daemon-shutdown.conf
-!/sangfor-atrust-bin/atrust-daemon-curl-preload.conf
-!/sangfor-atrust-bin/bsod_checker.js
-!/sangfor-atrust-bin/sangfor-atrust-bin.install
+# atrust's local sources: the tray launcher, the two systemd drop-ins for aTrustDaemon and the
+# fixed copy of the client's bsod_checker.js that prepare() installs.
+!/atrust/atrust-launcher.sh
+!/atrust/atrust-daemon-curl.conf
+!/atrust/atrust-daemon-shutdown.conf
+!/atrust/bsod_checker.js

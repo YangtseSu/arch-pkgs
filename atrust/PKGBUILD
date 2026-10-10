@@ -1,0 +1,128 @@
+# Maintainer: Yangtse Su <yangtsesu at gmail dot com>
+#
+# Distributed from this repository only; it is not uploaded to the AUR. It supersedes the
+# same-purpose AUR packages atrust-bin, sangfor-atrust-bin and sangfor-atrust.
+#
+# Differences from them:
+#   1. Keep the Electron runtime the deb bundles; do not depend on system electron.
+#   2. Do not replicate the deb postinst (chmod 777 resources/app, setuid bit on
+#      dmidecode_processor_tool, eaio_packman registration, writing XDG_SESSION_TYPE into
+#      /etc/environment). The AUR atrust-bin package works on this host without any of it,
+#      and the client creates its own state directories with its own umask.
+#   3. The launcher owns the service lifecycle: aTrustDaemon stops when the tray exits, so
+#      no root daemon keeps running. Start and stop are authorised through polkit.
+#   4. Three client defects measured on the host are fixed in prepare(), in the launcher and
+#      in the two drop-ins under /usr/lib.
+#   5. The bundled bsod_checker.js throws a ReferenceError on every check (a finally block
+#      references an undefined `err`); it is replaced with a fixed copy, byte for byte the
+#      file the AUR packages ship.
+#   6. The licence texts bundled in the deb (Electron's LICENSE, Chromium's
+#      LICENSES.chromium.html) are installed under /usr/share/licenses/atrust.
+#
+# Deliberately not shipped: the loginctl wrapper and the XDG_SESSION_TYPE=x11 line in
+# /etc/environment that the previous fork carried for xinit/startx desktops. Sessions here
+# are Wayland, which the client's login-user check accepts, and a package should not edit
+# /etc/environment. The AUR package works without both.
+
+pkgname=atrust
+_pkgname=aTrust
+pkgver=2.5.16.30
+pkgrel=1
+pkgdesc='Sangfor SDP/SSL VPN client (prebuilt, bundled Electron)'
+arch=('x86_64')
+url='https://www.sangfor.com/'
+license=('LicenseRef-Sangfor-EULA')
+depends=(
+    gtk3          # GTK3/X stack of the tray (Electron); pulls glib2, pango, cairo, gdk-pixbuf, mesa, cups, ...
+    qt5-base      # Qt5 Core/Gui/Widgets/DBus/Network, linked by aTrustAgent and the plugins
+    alsa-lib
+    at-spi2-core  # Electron accessibility (atk, atk-bridge, atspi)
+    cairo
+    libxcomposite
+    libxrandr
+    libxss
+    libxtst
+)
+makedepends=('patchelf')
+provides=("atrust-bin=$pkgver" "sangfor-atrust=$pkgver" "sangfor-atrust-bin=$pkgver")
+conflicts=('atrust-bin' 'sangfor-atrust' 'sangfor-atrust-bin')
+optdepends=('openssl-1.1: PKCS#11 smart-card login (pkcs11.so resolves libcrypto.so.1.1 from the system)')
+options=('!strip' '!debug' '!emptydirs')
+source=(
+    "atrust-$pkgver.deb::https://atrustcdn.sangfor.com/standard/linux/$pkgver/uos/amd64/${_pkgname}Installer_amd64.deb"
+    'atrust-launcher.sh'
+    'atrust-daemon-curl.conf'
+    'atrust-daemon-shutdown.conf'
+    'bsod_checker.js'
+)
+sha256sums=('aa8ba93532ae250dcab3d75d3b103fb01a93b97b49cbc6d9066c5ed1f70b75a6'
+            '866f5380ee5a889acc041dcca70dc65076946076b125eefa0fb7f1ea9c96591c'
+            '08bb8edf82591f381fc3c2f2a34f77151f489c41250b57696a01be43da4482e2'
+            '3dec928c5ef9d99199d9a2bb4d7efaa82a7fc57fa0d6e201918d1027c85a5831'
+            'ae82a7e0575d2ed8778134fc7d5c9c85001c955a7d26710a13101ff2363c53e6')
+
+prepare() {
+    # makepkg unpacks the deb (ar container); extract the data archive from it
+    bsdtar -xf data.tar.xz
+
+    # The bundled libstdc++ shadows a newer system copy (the vendor postinst removes it too)
+    rm -f "usr/share/sangfor/${_pkgname}/resources/lib/libstdc++.so.6" \
+          "usr/share/sangfor/${_pkgname}/uem/lib/libstdc++.so.6"
+
+    # The bundled libmmkv.so declares an executable stack (PT_GNU_STACK RWE) and glibc >= 2.41
+    # refuses to dlopen such an object, so the client's saved-address store never loads (no
+    # remembered hosts). MMKV is a plain key-value store and needs no executable stack; the
+    # flag is one byte of ELF.
+    patchelf --clear-execstack "usr/share/sangfor/${_pkgname}/resources/bin/libmmkv.so"
+
+    # The bundled bsod_checker.js references an undefined `err` inside a finally block and
+    # throws a ReferenceError on every check; install the fixed copy instead
+    install -Dm644 "$srcdir/bsod_checker.js" \
+        "usr/share/sangfor/${_pkgname}/resources/app/src/service/bsod_checker.js"
+
+    # Point the desktop entry at this package's launcher, which starts and stops the service
+    # and preloads the bundled SQLCipher
+    sed -i -e 's|^Exec=.*|Exec=atrust|' -e 's|^Icon=.*|Icon=aTrust|' \
+        "usr/share/applications/cn.com.sangfor.atrust.desktop"
+
+    # The aTrustCore plugin starts the tray itself through this script after login, bypassing
+    # the launcher; the same SQLCipher preload has to be there or that tray still segfaults
+    # when an address is submitted
+    sed -i '/^export PATH$/a export LD_PRELOAD=/usr/share/sangfor/aTrust/resources/bin/libsqlite3.so' \
+        "usr/share/sangfor/${_pkgname}/resources/shell/aTrustTrayStart.sh"
+    grep -q '^export LD_PRELOAD=/usr/share/sangfor/aTrust/resources/bin/libsqlite3.so$' \
+        "usr/share/sangfor/${_pkgname}/resources/shell/aTrustTrayStart.sh" || {
+        printf 'aTrustTrayStart.sh did not change as expected; the patch needs an update\n' >&2
+        return 1
+    }
+}
+
+package() {
+    # Main program tree (the client hardcodes /usr/share/sangfor in its paths and RUNPATH)
+    install -d "$pkgdir/usr/share"
+    cp -Pr --no-preserve=ownership "usr/share/sangfor" "$pkgdir/usr/share/"
+
+    # Launcher (tray plus service lifecycle)
+    install -Dm755 "$srcdir/atrust-launcher.sh" "$pkgdir/usr/bin/atrust"
+
+    # systemd units are installed unchanged; the packaging fixes live in drop-ins under
+    # /usr/lib/systemd, so an upgrade and a comparison against the vendor unit stay simple
+    install -Dm644 usr/lib/systemd/system/*.service -t "$pkgdir/usr/lib/systemd/system/"
+    install -Dm644 usr/lib/systemd/user/*.service -t "$pkgdir/usr/lib/systemd/user/"
+    install -Dm644 "$srcdir/atrust-daemon-curl.conf" \
+        "$pkgdir/usr/lib/systemd/system/aTrustDaemon.service.d/curl.conf"
+    install -Dm644 "$srcdir/atrust-daemon-shutdown.conf" \
+        "$pkgdir/usr/lib/systemd/system/aTrustDaemon.service.d/shutdown.conf"
+
+    # Icon and desktop entry (the vendor file names are kept)
+    install -Dm644 "usr/share/pixmaps/${_pkgname}.png" \
+        "$pkgdir/usr/share/pixmaps/${_pkgname}.png"
+    install -Dm644 "usr/share/applications/cn.com.sangfor.atrust.desktop" \
+        "$pkgdir/usr/share/applications/cn.com.sangfor.atrust.desktop"
+
+    # Licence texts bundled in the deb (Electron and Chromium third-party licences)
+    install -Dm644 "usr/share/sangfor/${_pkgname}/LICENSE" \
+        "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 "usr/share/sangfor/${_pkgname}/LICENSES.chromium.html" \
+        "$pkgdir/usr/share/licenses/$pkgname/LICENSES.chromium.html"
+}
