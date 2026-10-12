@@ -3,7 +3,29 @@
 # Distributed from this repository only; it is not uploaded to the AUR. It supersedes the
 # same-purpose AUR packages atrust-bin, sangfor-atrust-bin and sangfor-atrust.
 #
-# Differences from them:
+# Source: the UOS (统信) tree of the 2.5.16 batch, x86_64 from uos/amd64 and aarch64 from
+# uos/arm64.
+#
+# Why this tree and not the Ubuntu one: the Ubuntu build of the same batch has the higher
+# version number (2.5.16.50), but it is a self-contained bundle of older libraries - Qt 5.6.1
+# built with GCC 5.4 (2016) plus icu 55, png12, pcre16, Heimdal, OpenLDAP 2.4 and libxcb 1.11
+# - and the client loads those instead of the system ones. On Arch that costs extra surgery:
+# the bundled libxcb 1.11 does not export xcb_send_request_with_fds, which Arch's
+# libxcb-shm.so.0 imports, the bundled libstdc++ (GLIBCXX_3.4.25) is older than gcc-libs
+# (3.4.36), and the bundled Qt only knows Ubuntu's plugin prefix, so it needs
+# QT_QPA_PLATFORM_PLUGIN_PATH. The newer version number buys worse compatibility. This tree
+# keeps the system Qt5 and carries only boost, thrift, ip4tc, procps and libstdc++ in
+# resources/lib, plus (on aarch64) the KF5Wayland client and server libraries that linuxHelper
+# and the aTrustCore plugin link there.
+#
+# aarch64: NOT TESTED. The arm64 payload is packaged from the same tree with the same fixes,
+# but there is no aarch64 machine here, so it has never been run. Two things are known
+# statically: the aarch64 libmmkv.so already has a non-executable stack, so the patchelf step
+# is skipped there (it only runs when PT_GNU_STACK really is RWE), and the client binaries
+# need the bundled KF5Wayland libraries from resources/lib, which the launcher's
+# LD_LIBRARY_PATH covers.
+#
+# Differences from the AUR packages:
 #   1. Keep the Electron runtime the deb bundles; do not depend on system electron.
 #   2. Do not replicate the deb postinst (chmod 777 resources/app, setuid bit on
 #      dmidecode_processor_tool, eaio_packman registration, writing XDG_SESSION_TYPE into
@@ -11,13 +33,18 @@
 #      and the client creates its own state directories with its own umask.
 #   3. The launcher owns the service lifecycle: aTrustDaemon stops when the tray exits, so
 #      no root daemon keeps running. Start and stop are authorised through polkit.
-#   4. Three client defects measured on the host are fixed in prepare(), in the launcher and
-#      in the two drop-ins under /usr/lib.
+#   4. Client defects measured on the host are fixed in prepare(), in the launcher and in the
+#      two drop-ins under /usr/lib.
 #   5. The bundled bsod_checker.js throws a ReferenceError on every check (a finally block
 #      references an undefined `err`); it is replaced with a fixed copy, byte for byte the
 #      file the AUR packages ship.
 #   6. The licence texts bundled in the deb (Electron's LICENSE, Chromium's
 #      LICENSES.chromium.html) are installed under /usr/share/licenses/atrust.
+#
+# aarch64: the arm64 payload is packaged from the same tree with the same fixes, but it has
+# not been run - there is no aarch64 machine here. One difference is measured statically: the
+# aarch64 libmmkv.so already has a non-executable stack, so the patchelf step is skipped
+# there; it only runs when PT_GNU_STACK really is RWE.
 #
 # Deliberately not shipped: the loginctl wrapper and the XDG_SESSION_TYPE=x11 line in
 # /etc/environment that the previous fork carried for xinit/startx desktops. Sessions here
@@ -26,10 +53,10 @@
 
 pkgname=atrust
 _pkgname=aTrust
-pkgver=2.5.16.30
-pkgrel=2
+pkgver=2.5.16.41
+pkgrel=1
 pkgdesc='Sangfor SDP/SSL VPN client (prebuilt, bundled Electron)'
-arch=('x86_64')
+arch=('x86_64' 'aarch64')
 url='https://www.sangfor.com/'
 license=('LicenseRef-Sangfor-EULA')
 depends=(
@@ -48,32 +75,59 @@ provides=("atrust-bin=$pkgver" "sangfor-atrust=$pkgver" "sangfor-atrust-bin=$pkg
 conflicts=('atrust-bin' 'sangfor-atrust' 'sangfor-atrust-bin')
 optdepends=('openssl-1.1: PKCS#11 smart-card login (pkcs11.so resolves libcrypto.so.1.1 from the system)')
 options=('!strip' '!debug' '!emptydirs')
-source=(
-    "atrust-$pkgver.deb::https://atrustcdn.sangfor.com/standard/linux/$pkgver/uos/amd64/${_pkgname}Installer_amd64.deb"
+source_x86_64=(
+    "atrust-$pkgver-x86_64.deb::https://atrustcdn.sangfor.com/standard/linux/$pkgver/uos/amd64/${_pkgname}Installer_amd64.deb"
     'atrust-launcher.sh'
     'atrust-daemon-curl.conf'
     'atrust-daemon-shutdown.conf'
     'bsod_checker.js'
 )
-sha256sums=('aa8ba93532ae250dcab3d75d3b103fb01a93b97b49cbc6d9066c5ed1f70b75a6'
-            '31639e285ff41180fb09a7e5d4f5ba7c58c63aad27bef6f3c08d2230cf56cbab'
-            '08bb8edf82591f381fc3c2f2a34f77151f489c41250b57696a01be43da4482e2'
-            '3dec928c5ef9d99199d9a2bb4d7efaa82a7fc57fa0d6e201918d1027c85a5831'
-            'ae82a7e0575d2ed8778134fc7d5c9c85001c955a7d26710a13101ff2363c53e6')
+source_aarch64=(
+    "atrust-$pkgver-aarch64.deb::https://atrustcdn.sangfor.com/standard/linux/$pkgver/uos/arm64/${_pkgname}Installer_arm64.deb"
+    'atrust-launcher.sh'
+    'atrust-daemon-curl.conf'
+    'atrust-daemon-shutdown.conf'
+    'bsod_checker.js'
+)
+sha256sums_x86_64=('360c78dd8be33fc9030a039ad3bf735d0812132071c05b280115642d4be146f5'
+                   '5274f5fcb079eee0037ffbed987761b656b61f4f46da5711e09ef724ec366d65'
+                   '08bb8edf82591f381fc3c2f2a34f77151f489c41250b57696a01be43da4482e2'
+                   '3dec928c5ef9d99199d9a2bb4d7efaa82a7fc57fa0d6e201918d1027c85a5831'
+                   'ae82a7e0575d2ed8778134fc7d5c9c85001c955a7d26710a13101ff2363c53e6')
+sha256sums_aarch64=('e83bd009533c5ead315f60e85d981788f1df508af7b0989eeba724fd574650b2'
+                    '5274f5fcb079eee0037ffbed987761b656b61f4f46da5711e09ef724ec366d65'
+                    '08bb8edf82591f381fc3c2f2a34f77151f489c41250b57696a01be43da4482e2'
+                    '3dec928c5ef9d99199d9a2bb4d7efaa82a7fc57fa0d6e201918d1027c85a5831'
+                    'ae82a7e0575d2ed8778134fc7d5c9c85001c955a7d26710a13101ff2363c53e6')
 
 prepare() {
-    # makepkg unpacks the deb (ar container); extract the data archive from it
+    # makepkg unpacks the deb (ar container) for the architecture it was called for; extract
+    # the data archive from it. Both payloads use the same paths inside the deb.
     bsdtar -xf data.tar.xz
 
-    # The bundled libstdc++ shadows a newer system copy (the vendor postinst removes it too)
+    # The bundled libstdc++ is older than the system one and shadows it on aTrustAgent's
+    # RUNPATH; the vendor's postinst deletes the resources/lib copy too once the system
+    # libstdc++ is newer than 8.3
     rm -f "usr/share/sangfor/${_pkgname}/resources/lib/libstdc++.so.6" \
           "usr/share/sangfor/${_pkgname}/uem/lib/libstdc++.so.6"
 
     # The bundled libmmkv.so declares an executable stack (PT_GNU_STACK RWE) and glibc >= 2.41
     # refuses to dlopen such an object, so the client's saved-address store never loads (no
     # remembered hosts). MMKV is a plain key-value store and needs no executable stack; the
-    # flag is one byte of ELF.
-    patchelf --clear-execstack "usr/share/sangfor/${_pkgname}/resources/bin/libmmkv.so"
+    # flag is one byte of ELF. The aarch64 copy is built without the flag, so only files that
+    # really carry it are rewritten.
+    local mmkv="usr/share/sangfor/${_pkgname}/resources/bin/libmmkv.so"
+    if [ ! -f "$mmkv" ]; then
+        printf '%s is missing; the deb layout changed\n' "$mmkv" >&2
+        return 1
+    fi
+    if readelf -lW "$mmkv" | grep -q 'GNU_STACK.*RWE'; then
+        patchelf --clear-execstack "$mmkv"
+        readelf -lW "$mmkv" | grep -q 'GNU_STACK.*RWE' && {
+            printf 'libmmkv.so still declares an executable stack after patchelf\n' >&2
+            return 1
+        }
+    fi
 
     # The bundled bsod_checker.js references an undefined `err` inside a finally block and
     # throws a ReferenceError on every check; install the fixed copy instead

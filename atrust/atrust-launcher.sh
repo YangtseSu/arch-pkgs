@@ -15,7 +15,9 @@
 #     address segfaults. Preloading the bundled copy keeps the client's sqlite3_* calls
 #     inside the client.
 #   * LD_LIBRARY_PATH: the bundled bin/ and lib/ directories take precedence over system
-#     libraries of the same name.
+#     libraries of the same name. On aarch64 resources/lib also carries the bundled
+#     KF5Wayland client and server libraries that linuxHelper and the aTrustCore plugin link
+#     there (the x86_64 tree has no Qt or KDE libraries in resources/lib).
 set -u
 
 APP=/usr/share/sangfor/aTrust
