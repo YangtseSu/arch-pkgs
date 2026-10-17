@@ -27,3 +27,6 @@
 !/atrust/atrust-daemon-curl.conf
 !/atrust/atrust-daemon-shutdown.conf
 !/atrust/bsod_checker.js
+
+# zju-connect-git's systemd unit is a local source too.
+!/zju-connect-git/zju-connect.service

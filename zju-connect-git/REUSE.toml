@@ -1,0 +1,11 @@
+version = 1
+
+# The PKGBUILD and the local systemd unit are published from this repository under its usual 0BSD
+# policy. The packaged program keeps its own license, which package() installs from the checkout.
+[[annotations]]
+path = [
+    "PKGBUILD",
+    "zju-connect.service",
+]
+SPDX-FileCopyrightText = "Yangtse Su <yangtsesu@gmail.com>"
+SPDX-License-Identifier = "0BSD"

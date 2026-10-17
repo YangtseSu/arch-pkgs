@@ -9,6 +9,7 @@ My personal Arch Linux PKGBUILDs. These packages are not in the AUR, except wher
 | [cirrocast-git](cirrocast-git/) | <https://github.com/YangtseSu/cirrocast> | Terminal weather client with pluggable backends |
 | [atrust](atrust/) | <https://www.sangfor.com/> | Sangfor aTrust SDP client (repack of the vendor deb; bundled Electron kept, root daemon started and stopped by the tray launcher, bundled-curl/SQLCipher preloads and the libmmkv exec-stack patch applied) |
 | [zlib-git](zlib-git/) | <https://github.com/heartleo/zlib> | Command-line tool for Z-Library |
+| [zju-connect-git](zju-connect-git/) | <https://github.com/YangtseSu/zju-connect> | Go client for ZJU RVPN and Sangfor aTrust gateways, built from the fork that carries the changes in upstream review |
 
 ## Use
 

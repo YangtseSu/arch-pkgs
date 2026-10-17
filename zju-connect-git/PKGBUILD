@@ -1,0 +1,84 @@
+# Maintainer: Yangtse Su <yangtsesu at gmail dot com>
+# SPDX-FileCopyrightText: 2026 Yangtse Su <yangtsesu@gmail.com>
+# SPDX-License-Identifier: 0BSD
+#
+# Builds from source the fork at github.com/YangtseSu/zju-connect: the upstream project plus the
+# changes that are in review there. The `-git` suffix means the tip of the fork's `main` branch, so
+# `makepkg -u --noextract` picks up new commits and `makepkg -sif` rebuilds and installs.
+#
+# Verified with:
+#   namcap PKGBUILD
+#   makepkg -f && namcap zju-connect-git-*.pkg.tar.zst
+# namcap keeps one warning: the cgo-enabled build links libresolv.so.2 through glibc's resolver
+# symbols, which the binary does not call. A cgo-less build removes the warning but drops FULL
+# RELRO and adds a needless glibc dependency, so this trade is the better one.
+#
+# The layout follows archlinuxcn's `zju-connect-bin` (binary in /usr/bin, the sample configuration
+# as /etc/zju-connect/config.toml, a systemd unit), but the binary is compiled here instead of
+# unpacked from a release archive. `provides=('zju-connect-bin')` exists so that the archlinuxcn
+# `ez4connect` package keeps a satisfied dependency when this package replaces that one.
+
+pkgname=zju-connect-git
+pkgver=1.3.1.r14.g4ea96de
+pkgrel=1
+pkgdesc='Go client for the ZJU RVPN and Sangfor aTrust gateways'
+arch=('x86_64' 'aarch64')
+url='https://github.com/YangtseSu/zju-connect'
+license=('AGPL-3.0-only')
+depends=('glibc')
+makedepends=('gcc' 'git' 'go')
+provides=('zju-connect' 'zju-connect-bin')
+conflicts=('zju-connect-bin')
+backup=('etc/zju-connect/config.toml')
+options=('!debug')
+source=("$pkgname::git+$url.git"
+        'zju-connect.service')
+sha256sums=('SKIP'
+            '96f9145b783e770d6c448d9db7e43796b79c19f984f2b1387333a64c1874a74a')
+
+prepare() {
+  cd "$pkgname"
+  # Fetch modules here so build() needs no network: a clean chroot has none once checksumming and
+  # cloning are done.
+  go mod download
+}
+
+pkgver() {
+  cd "$pkgname"
+  git describe --tags --long --abbrev=7 --match 'v*' | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+}
+
+build() {
+  cd "$pkgname"
+  # cgo is on so the external linker can apply the hardening flags below; a cgo-less build cannot
+  # use -linkmode=external.
+  export CGO_ENABLED=1
+  go build \
+    -trimpath \
+    -buildmode=pie \
+    -ldflags "-s -w \
+      -X main.zjuConnectVersion=${pkgver%%.r*} \
+      -X main.CommitID=$(git rev-parse --short HEAD) \
+      -linkmode=external -extldflags=-Wl,-z,relro,-z,now" \
+    -o zju-connect \
+    .
+}
+
+check() {
+  cd "$pkgname"
+  go test ./...
+}
+
+package() {
+  cd "$pkgname"
+  install -Dm755 zju-connect "$pkgdir/usr/bin/zju-connect"
+
+  # The upstream sample, installed as the live configuration: the systemd unit reads this path, and
+  # it is in `backup` so an upgrade keeps the user's edits.
+  install -Dm644 config.toml.example "$pkgdir/etc/zju-connect/config.toml"
+
+  install -Dm644 "$srcdir/zju-connect.service" \
+    "$pkgdir/usr/lib/systemd/system/zju-connect.service"
+
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
