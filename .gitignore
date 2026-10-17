@@ -28,5 +28,6 @@
 !/atrust/atrust-daemon-shutdown.conf
 !/atrust/bsod_checker.js
 
-# zju-connect-git's systemd unit is a local source too.
+# zju-connect-git's systemd unit and ez4connect-git's desktop entry are local sources too.
 !/zju-connect-git/zju-connect.service
+!/ez4connect-git/EZ4Connect.desktop

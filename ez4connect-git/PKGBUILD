@@ -1,0 +1,76 @@
+# Maintainer: Yangtse Su <yangtsesu at gmail dot com>
+# SPDX-FileCopyrightText: 2026 Yangtse Su <yangtsesu@gmail.com>
+# SPDX-License-Identifier: 0BSD
+#
+# Builds from source the fork at github.com/YangtseSu/EZ4Connect: the upstream project plus the
+# changes that are in review there. The `-git` suffix means the tip of the fork's `master` branch.
+#
+# Verified with:
+#   namcap PKGBUILD
+#   makepkg -f && namcap ez4connect-git-*.pkg.tar.zst
+# namcap keeps warnings that are intentional:
+#   * `libgcc`/`glibc`/`libstdc++` are "detected and implicitly satisfied" while `gcc-libs` is at
+#     the same time "included, but may not be needed". libstdc++ and libgcc come from `gcc-libs`,
+#     which is a direct dependency of a C++ binary, so it stays.
+#   * `qt6-svg` is a build-only dependency: the CMakeLists asks for it, but no source file
+#     references QtSvg and DT_NEEDED has no libQt6Svg, so it moved to makedepends.
+#   * `zju-connect-git` is a real runtime dependency namcap cannot see: the GUI spawns the core as
+#     a child process instead of linking it.
+#
+# The layout follows archlinuxcn's `ez4connect` package, with two differences: this package depends
+# on the fork of the core (`zju-connect-git`) instead of archlinuxcn's `zju-connect-bin`, so both
+# halves of a test install come from the same sources; and `check()` runs the project's own ctest
+# suite at build time, which the archlinuxcn package does not.
+#
+# The build configures with BUILD_TESTING=ON. The Qt tests open widgets, so check() runs ctest
+# against the offscreen platform plugin: a chroot has no display.
+
+pkgname=ez4connect-git
+pkgver=1.9.1.r3.g39a2f7a
+pkgrel=1
+pkgdesc='Qt GUI for the zju-connect core, built from the fork sources'
+arch=('x86_64' 'aarch64')
+url='https://github.com/YangtseSu/EZ4Connect'
+license=('GPL-3.0-only')
+depends=('gcc-libs' 'hicolor-icon-theme' 'qt6-base' 'qt6-5compat' 'qt6-webengine' 'zju-connect-git')
+makedepends=('cmake' 'gcc' 'git' 'qt6-svg')
+provides=('ez4connect')
+conflicts=('ez4connect' 'ez4connect-bin' 'ez4connect-portable')
+options=('!debug')
+source=("$pkgname::git+$url.git"
+        'EZ4Connect.desktop')
+sha256sums=('SKIP'
+            'a92583b5eda092b0d3d057973443db620faab95345841dacd384f5eb26e6178a')
+
+pkgver() {
+  cd "$pkgname"
+  git describe --tags --long --abbrev=7 --match 'v*' | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+}
+
+build() {
+  cd "$pkgname"
+  # REL_VER is what the About dialog shows; the git description tells a test build apart from a
+  # release one.
+  cmake \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_TESTING=ON \
+    -DREL_VER="$pkgver" \
+    -S . \
+    -B build
+  cmake --build build --parallel "$(nproc)"
+}
+
+check() {
+  cd "$pkgname"
+  QT_QPA_PLATFORM=offscreen ctest --test-dir build --output-on-failure
+}
+
+package() {
+  cd "$pkgname"
+  install -Dm755 build/EZ4Connect "$pkgdir/usr/bin/ez4connect"
+  install -Dm644 resource/icon.png \
+    "$pkgdir/usr/share/icons/hicolor/1024x1024/apps/EZ4Connect.png"
+  install -Dm644 "$srcdir/EZ4Connect.desktop" \
+    "$pkgdir/usr/share/applications/EZ4Connect.desktop"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=EZ4Connect
+Comment=Connect to a Sangfor aTrust or EasyConnect gateway
+Exec=ez4connect
+Icon=EZ4Connect
+Terminal=false
+Categories=Network;Security;
