@@ -26,7 +26,7 @@
 # against the offscreen platform plugin: a chroot has no display.
 
 pkgname=ez4connect-git
-pkgver=1.9.1.r3.g24121e4
+pkgver=1.9.1.r16.g6629eed
 pkgrel=1
 pkgdesc='Qt GUI for the zju-connect core, built from the fork sources'
 arch=('x86_64' 'aarch64')
@@ -37,11 +37,13 @@ makedepends=('cmake' 'gcc' 'git' 'qt6-svg')
 provides=('ez4connect')
 conflicts=('ez4connect' 'ez4connect-bin' 'ez4connect-portable')
 options=('!debug')
-# The source is the branch that carries the prompt-contract fix, not `master`: logging in
-# on a gateway that asks for a TOTP token or a click captcha needs it, because the core
-# prints those prompts as partial lines and the released parser does not match them.
-# Switch back to the default branch when that fix is in upstream.
-_branch=fix/atrust-prompt-contract
+# The source is the fork's `dev` branch, its default branch: every change of ours is integrated
+# there, so one install has all of them. A single change still leaves the fork as a topic branch
+# cut from upstream's `master`, so it can open its own pull request; `dev` is where the topic
+# branches meet for daily use. The package was pinned to `fix/atrust-prompt-contract` before
+# this, because logging in on a gateway that asks for a TOTP token or a click captcha needs that
+# fix: the core prints those prompts as partial lines and the released parser did not match them.
+_branch=dev
 source=("$pkgname::git+$url.git#branch=$_branch"
         'EZ4Connect.desktop')
 sha256sums=('SKIP'

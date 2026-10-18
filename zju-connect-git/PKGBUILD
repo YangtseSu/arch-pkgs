@@ -2,9 +2,12 @@
 # SPDX-FileCopyrightText: 2026 Yangtse Su <yangtsesu@gmail.com>
 # SPDX-License-Identifier: 0BSD
 #
-# Builds from source the fork at github.com/YangtseSu/zju-connect: the upstream project plus the
-# changes that are in review there. The `-git` suffix means the tip of the fork's `main` branch, so
-# `makepkg -u --noextract` picks up new commits and `makepkg -sif` rebuilds and installs.
+# Builds from source the fork at github.com/YangtseSu/zju-connect: the upstream project plus every
+# change of ours, integrated on the fork's `dev` branch, its default branch. The `-git` suffix means
+# the tip of that branch, so `makepkg -C --noconfirm` re-clones it and picks up new commits (`-e`
+# would silently keep the old checkout). A single change still leaves the fork as a topic branch cut
+# from upstream's `main`, so it can open its own pull request; `dev` is where the topic branches
+# meet for daily use.
 #
 # Verified with:
 #   namcap PKGBUILD
@@ -19,7 +22,7 @@
 # `ez4connect` package keeps a satisfied dependency when this package replaces that one.
 
 pkgname=zju-connect-git
-pkgver=1.3.1.r14.g4ea96de
+pkgver=1.3.1.r50.gd79ce45
 pkgrel=1
 pkgdesc='Go client for the ZJU RVPN and Sangfor aTrust gateways'
 arch=('x86_64' 'aarch64')
@@ -31,7 +34,8 @@ provides=('zju-connect' 'zju-connect-bin')
 conflicts=('zju-connect-bin')
 backup=('etc/zju-connect/config.toml')
 options=('!debug')
-source=("$pkgname::git+$url.git"
+_branch=dev
+source=("$pkgname::git+$url.git#branch=$_branch"
         'zju-connect.service')
 sha256sums=('SKIP'
             '96f9145b783e770d6c448d9db7e43796b79c19f984f2b1387333a64c1874a74a')
