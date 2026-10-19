@@ -22,7 +22,7 @@
 # `ez4connect` package keeps a satisfied dependency when this package replaces that one.
 
 pkgname=zju-connect-git
-pkgver=1.3.1.r50.gd79ce45
+pkgver=1.3.1.r80.g9889ff6
 pkgrel=1
 pkgdesc='Go client for the ZJU RVPN and Sangfor aTrust gateways'
 arch=('x86_64' 'aarch64')
@@ -44,6 +44,16 @@ prepare() {
   cd "$pkgname"
   # Fetch modules here so build() needs no network: a clean chroot has none once checksumming and
   # cloning are done.
+  #
+  # One module comes from the canonical proxy instead of the configured one. The GOPROXY of this
+  # environment, mirrors.aliyun.com, serves golang.zx2c4.com/wireguard/windows@v1.0.1 with hash
+  # h1:zRLGRx84kiOcxqkYLoeKYCQNBO2tKYOKXu7AvlSZ6h4=, while go.sum and sum.golang.org both require
+  # h1:eOxiDVbywPC+ZQqvdCK7x+ZwWXKbYv50TtH8ysFIbw8=: the mirror cached a different build of that
+  # tag (its .info reports 2026-04-20T11:32:47Z against the official 11:14:21Z). A checksum
+  # mismatch does not fall through to the next proxy of a GOPROXY list, so the module is fetched
+  # here, from proxy.golang.org; the second call then takes every module from the mirror and the
+  # cache.
+  GOPROXY="https://proxy.golang.org,direct" go mod download golang.zx2c4.com/wireguard/windows
   go mod download
 }
 
