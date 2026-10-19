@@ -26,7 +26,7 @@
 # against the offscreen platform plugin: a chroot has no display.
 
 pkgname=ez4connect-git
-pkgver=1.9.1.r16.g6629eed
+pkgver=1.9.1.r26.g367861a
 pkgrel=1
 pkgdesc='Qt GUI for the zju-connect core, built from the fork sources'
 arch=('x86_64' 'aarch64')
