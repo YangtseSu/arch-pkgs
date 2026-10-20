@@ -59,7 +59,11 @@ prepare() {
 
 pkgver() {
   cd "$pkgname"
-  git describe --tags --long --abbrev=7 --match 'v*' | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+  # Fork release tags (`v1.3.1-fork.1`) name a snapshot of this branch, not an
+  # upstream release; ignoring them keeps the `-git` version ordered by the
+  # upstream tags alone, so a rebuild from a release tag yields the same pkgver
+  # as one from the branch tip.
+  git describe --tags --long --abbrev=7 --match 'v*' --exclude '*-fork*' | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
 }
 
 build() {
