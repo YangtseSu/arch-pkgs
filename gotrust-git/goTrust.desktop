@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=goTrust
+Comment=Connect to a Sangfor aTrust gateway and serve local proxies
+Exec=goTrust
+Icon=goTrust
+Terminal=false
+Categories=Network;Security;
