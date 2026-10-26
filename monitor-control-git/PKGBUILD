@@ -1,0 +1,60 @@
+# Maintainer: Yangtse Su <yangtsesu at gmail dot com>
+# SPDX-FileCopyrightText: 2026 Yangtse Su <yangtsesu@gmail.com>
+# SPDX-License-Identifier: 0BSD
+#
+# The `-git` suffix means this package tracks the tip of the `master` branch. Upstream publishes no
+# tags and no releases, so `pkgver()` counts commits on that branch. `makepkg -C --noconfirm`
+# re-clones it and picks up new commits (`-e` would silently keep the old checkout).
+#
+# The package ships two binaries:
+#   monitor-control  upstream: get or set one VCP feature on one output, one DDC frame, no scan
+#   monitor-input    a wrapper that selects the input source (VCP 0x60) of one monitor
+#
+# Verified with:
+#   namcap PKGBUILD
+#   makepkg -f && namcap monitor-control-git-*.pkg.tar.zst
+#   monitor-control DP-1 0x60        # prints "<value> <max>", 15 on the VG249 while DP is active
+#   monitor-input status             # prints "DisplayPort-1"
+#
+# monitor-input hard-codes the VCP 0x60 values of one monitor (ASUS VG249: 15 DisplayPort-1,
+# 17 HDMI-1, 1 VGA-1) and the output that carries its DDC channel (DP-1). Override the last two
+# with MONITOR_VCP and MONITOR_OUTPUT; for another monitor, edit the VALUE/NAME tables in the
+# script. Values are monitor specific and cannot be derived without reading the capabilities, which
+# monitor-control deliberately does not do.
+
+pkgname=monitor-control-git
+pkgver=r15.d8efd61
+pkgrel=1
+pkgdesc='Fastest tool to get and set DDC/CI monitor values, plus an input-source switcher'
+arch=('x86_64' 'aarch64')
+url='https://github.com/lilydjwg/monitor-control'
+license=('GPL-3.0-only')
+depends=('bash' 'gcc-libs' 'glibc')
+makedepends=('cargo' 'git' 'rust')
+provides=('monitor-control')
+conflicts=('monitor-control')
+options=('!lto' '!debug')
+
+source=("$pkgname::git+https://github.com/lilydjwg/monitor-control.git"
+        'monitor-input')
+sha256sums=('SKIP'
+            '70ec0db83e7dce6bd199c5ab2ffd8a5d2131375ac58532ac19ded29cc2038e26')
+
+pkgver() {
+  cd "$pkgname"
+  printf 'r%s.%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
+}
+
+build() {
+  cd "$pkgname"
+  cargo build --release --locked --target "${CARCH}-unknown-linux-gnu"
+}
+
+package() {
+  cd "$pkgname"
+
+  install -Dm755 "target/${CARCH}-unknown-linux-gnu/release/monitor-control" \
+    "$pkgdir/usr/bin/monitor-control"
+  install -Dm755 "$srcdir/monitor-input" "$pkgdir/usr/bin/monitor-input"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

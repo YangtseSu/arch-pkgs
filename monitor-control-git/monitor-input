@@ -1,0 +1,82 @@
+#!/bin/bash
+# SPDX-FileCopyrightText: 2026 Yangtse Su <yangtsesu@gmail.com>
+# SPDX-License-Identifier: 0BSD
+#
+# monitor-input - switch a monitor's input source over DDC/CI.
+#
+# VCP 0x60 holds the input source. Its values are monitor specific; the table below is for the
+# ASUS VG249. Read the raw value with `monitor-control "$MONITOR_OUTPUT" 0x60` and compare it with
+# the input the OSD shows before you trust it on another monitor.
+#
+# monitor-control writes one DDC frame and does not wait for the monitor's answer, so the command
+# returns in milliseconds and, unlike a verified write, does not fail when the monitor drops the
+# DDC channel right after switching away. That is what makes it usable for input selection.
+#
+# Environment:
+#   MONITOR_OUTPUT  DRM output that carries the DDC channel (default: DP-1)
+#   MONITOR_VCP     feature code, decimal or 0xFF form (default: 0x60)
+
+set -uo pipefail
+
+output=${MONITOR_OUTPUT:-DP-1}
+feature=${MONITOR_VCP:-0x60}
+
+# VCP 0x60 values of the ASUS VG249, in the decimal form monitor-control(1) expects.
+declare -A VALUE=([hdmi]=17 [dp]=15 [vga]=1)
+declare -A NAME=([17]=HDMI-1 [15]=DisplayPort-1 [1]=VGA-1)
+
+die() {
+	printf 'monitor-input: %s\n' "$*" >&2
+	exit 1
+}
+
+usage() {
+	printf 'usage: monitor-input [hdmi|dp|vga|toggle|status]\n' >&2
+	exit 2
+}
+
+# Reads the current value of the feature. The DDC read is a single exchange with no retry in
+# monitor-control, and this monitor answers with a short or malformed frame now and then, so give
+# it a few tries before reporting the output as unreachable.
+read_current() {
+	local attempt raw
+	for attempt in 1 2 3; do
+		if raw=$(monitor-control "$output" "$feature" 2>/dev/null); then
+			printf '%s\n' "${raw%% *}"
+			return 0
+		fi
+		sleep 0.08
+	done
+	return 1
+}
+
+set_input() {
+	local label=$1 value=$2 err
+	if ! err=$(monitor-control "$output" "$feature" "$value" 2>&1 >/dev/null); then
+		printf 'monitor-input: setting %s on %s failed: %s\n' "$label" "$output" \
+			"${err:-no error message}" >&2
+		return 1
+	fi
+	printf '%s\n' "$label"
+}
+
+case "${1:-status}" in
+status)
+	current=$(read_current) || die "no DDC/CI answer from $output"
+	printf '%s\n' "${NAME[$current]:-unknown (raw $current)}"
+	;;
+hdmi | dp | vga)
+	set_input "${NAME[${VALUE[$1]}]}" "${VALUE[$1]}"
+	;;
+toggle)
+	current=$(read_current) || die "no DDC/CI answer from $output"
+	if [[ $current == "${VALUE[hdmi]}" ]]; then
+		set_input "${NAME[${VALUE[dp]}]}" "${VALUE[dp]}"
+	else
+		set_input "${NAME[${VALUE[hdmi]}]}" "${VALUE[hdmi]}"
+	fi
+	;;
+*)
+	usage
+	;;
+esac

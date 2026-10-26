@@ -36,3 +36,6 @@
 !/gotrust-git/goTrust.desktop
 !/gotrust-git/goTrust.png
 !/gotrust-git/goTrust-32.png
+
+# monitor-control-git's input switcher wrapper is a local source too.
+!/monitor-control-git/monitor-input
