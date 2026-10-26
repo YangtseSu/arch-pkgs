@@ -20,7 +20,7 @@
 #     namcap cannot see them as needed; removing them breaks the window/tray.
 
 pkgname=gotrust-git
-pkgver=r7.g2bb630c
+pkgver=r67.g9d9b092
 pkgrel=1
 pkgdesc='Tray app for Sangfor aTrust gateways with local SOCKS5 and HTTP proxies'
 arch=('x86_64' 'aarch64')
@@ -32,17 +32,15 @@ provides=('gotrust')
 conflicts=('gotrust')
 options=('!debug')
 _branch=main
-source=("$pkgname::git+file://$HOME/projects/goTrust#branch=$_branch"
-        'goTrust.desktop'
-        'goTrust.png'
-        'goTrust-32.png')
-sha256sums=('SKIP'
-            'ae92337d44640170cd62fca6d5af59b4d0ea3030753bba68087c09aa611b2e2c'
-            'cc2b8210df45e73acd61f32dd310dd18705128a1d762830883a7a8a43d5733d7'
-            '249ce925943e1520de3f21d9dd0c646ece0e977d7aa89bc1bc29a40947980456')
+source=("$pkgname::git+file://$HOME/projects/goTrust#branch=$_branch")
+sha256sums=('SKIP')
 
 prepare() {
   cd "$pkgname"
+  # go.mod points at ../atrust-dev/zju-connect for the local fork. The source
+  # clone lives under $srcdir/$pkgname, so link the sibling path the replace
+  # expects; the repository itself carries no absolute home path.
+  ln -sfn "$HOME/projects/atrust-dev" "$srcdir/atrust-dev"
   # Fetch modules here so build() needs no network: a clean chroot has none
   # once checksumming and cloning are done.
   go mod download
@@ -62,7 +60,7 @@ build() {
     -trimpath \
     -buildmode=pie \
     -ldflags "-s -w -linkmode=external -extldflags=-Wl,-z,relro,-z,now" \
-    -o goTrust \
+    -o gotrust \
     .
 }
 
@@ -73,14 +71,18 @@ check() {
 
 package() {
   cd "$pkgname"
-  install -Dm755 goTrust "$pkgdir/usr/bin/goTrust"
+  install -Dm755 gotrust "$pkgdir/usr/bin/gotrust"
 
-  install -Dm644 "$srcdir/goTrust.desktop" \
-    "$pkgdir/usr/share/applications/goTrust.desktop"
-  install -Dm644 "$srcdir/goTrust.png" \
-    "$pkgdir/usr/share/icons/hicolor/256x256/apps/goTrust.png"
-  install -Dm644 "$srcdir/goTrust-32.png" \
-    "$pkgdir/usr/share/icons/hicolor/32x32/apps/goTrust.png"
+  # The desktop entry and the icons ship with the source tree, so the package
+  # installs exactly what the repository holds. The scalable SVG is the source
+  # of truth; the tray PNG is rendered from it at build time by the repository
+  # (see data/icons/tray-64.png) and embedded in the binary.
+  install -Dm644 data/gotrust.desktop \
+    "$pkgdir/usr/share/applications/gotrust.desktop"
+  install -Dm644 data/icons/hicolor/scalable/apps/gotrust.svg \
+    "$pkgdir/usr/share/icons/hicolor/scalable/apps/gotrust.svg"
+  install -Dm644 data/icons/hicolor/symbolic/apps/gotrust-symbolic.svg \
+    "$pkgdir/usr/share/icons/hicolor/symbolic/apps/gotrust-symbolic.svg"
 
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
