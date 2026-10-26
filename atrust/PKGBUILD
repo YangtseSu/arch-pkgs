@@ -35,10 +35,7 @@
 #      no root daemon keeps running. Start and stop are authorised through polkit.
 #   4. Client defects measured on the host are fixed in prepare(), in the launcher and in the
 #      two drop-ins under /usr/lib.
-#   5. The bundled bsod_checker.js throws a ReferenceError on every check (a finally block
-#      references an undefined `err`); it is replaced with a fixed copy, byte for byte the
-#      file the AUR packages ship.
-#   6. The licence texts bundled in the deb (Electron's LICENSE, Chromium's
+#   5. The licence texts bundled in the deb (Electron's LICENSE, Chromium's
 #      LICENSES.chromium.html) are installed under /usr/share/licenses/atrust.
 #
 # aarch64: the arm64 payload is packaged from the same tree with the same fixes, but it has
@@ -80,25 +77,21 @@ source_x86_64=(
     'atrust-launcher.sh'
     'atrust-daemon-curl.conf'
     'atrust-daemon-shutdown.conf'
-    'bsod_checker.js'
 )
 source_aarch64=(
     "atrust-$pkgver-aarch64.deb::https://atrustcdn.sangfor.com/standard/linux/$pkgver/uos/arm64/${_pkgname}Installer_arm64.deb"
     'atrust-launcher.sh'
     'atrust-daemon-curl.conf'
     'atrust-daemon-shutdown.conf'
-    'bsod_checker.js'
 )
 sha256sums_x86_64=('360c78dd8be33fc9030a039ad3bf735d0812132071c05b280115642d4be146f5'
                    '5274f5fcb079eee0037ffbed987761b656b61f4f46da5711e09ef724ec366d65'
                    '08bb8edf82591f381fc3c2f2a34f77151f489c41250b57696a01be43da4482e2'
-                   '3dec928c5ef9d99199d9a2bb4d7efaa82a7fc57fa0d6e201918d1027c85a5831'
-                   'ae82a7e0575d2ed8778134fc7d5c9c85001c955a7d26710a13101ff2363c53e6')
+                   '3dec928c5ef9d99199d9a2bb4d7efaa82a7fc57fa0d6e201918d1027c85a5831')
 sha256sums_aarch64=('e83bd009533c5ead315f60e85d981788f1df508af7b0989eeba724fd574650b2'
                     '5274f5fcb079eee0037ffbed987761b656b61f4f46da5711e09ef724ec366d65'
                     '08bb8edf82591f381fc3c2f2a34f77151f489c41250b57696a01be43da4482e2'
-                    '3dec928c5ef9d99199d9a2bb4d7efaa82a7fc57fa0d6e201918d1027c85a5831'
-                    'ae82a7e0575d2ed8778134fc7d5c9c85001c955a7d26710a13101ff2363c53e6')
+                    '3dec928c5ef9d99199d9a2bb4d7efaa82a7fc57fa0d6e201918d1027c85a5831')
 
 prepare() {
     # makepkg unpacks the deb (ar container) for the architecture it was called for; extract
@@ -129,10 +122,24 @@ prepare() {
         }
     fi
 
-    # The bundled bsod_checker.js references an undefined `err` inside a finally block and
-    # throws a ReferenceError on every check; install the fixed copy instead
-    install -Dm644 "$srcdir/bsod_checker.js" \
-        "usr/share/sangfor/${_pkgname}/resources/app/src/service/bsod_checker.js"
+    # The client's BSOD check calls the caller's callback a second time from inside a
+    # finally block, with an identifier that does not exist, so every check throws
+    # ReferenceError. The catch above it already reports the same failure, so the duplicate
+    # call is removed rather than repaired; the tunnel comes up either way. A later client
+    # version carries the same removal, so an already-clean file is left alone.
+    local checker="usr/share/sangfor/${_pkgname}/resources/app/src/service/bsod_checker.js"
+    if [ ! -f "$checker" ]; then
+        printf '%s is missing; the deb layout changed\n' "$checker" >&2
+        return 1
+    fi
+    case "$(grep -o 't(false,err)' "$checker" | wc -l)" in
+        0) ;;
+        2) sed -i 's/t(false,err)//g' "$checker" ;;
+        *)
+            printf '%s carries an unexpected number of duplicate callback calls\n' "$checker" >&2
+            return 1
+            ;;
+    esac
 
     # Point the desktop entry at this package's launcher, which starts and stops the service
     # and preloads the bundled SQLCipher
