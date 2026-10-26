@@ -4,7 +4,7 @@
 #
 # monitor-input - switch a monitor's input source over DDC/CI.
 #
-# VCP 0x60 holds the input source. Its values are monitor specific; the table below is for the
+# VCP 0x60 holds the input source. Its values are monitor specific; the defaults below are for the
 # ASUS VG249. Read the raw value with `monitor-control "$MONITOR_OUTPUT" 0x60` and compare it with
 # the input the OSD shows before you trust it on another monitor.
 #
@@ -12,18 +12,39 @@
 # returns in milliseconds and, unlike a verified write, does not fail when the monitor drops the
 # DDC channel right after switching away. That is what makes it usable for input selection.
 #
-# Environment:
-#   MONITOR_OUTPUT  DRM output that carries the DDC channel (default: DP-1)
-#   MONITOR_VCP     feature code, decimal or 0xFF form (default: 0x60)
+# Settings, in order of precedence: environment, then ~/.config/monitor-input.conf, then defaults.
+#   MONITOR_OUTPUT  DRM output that carries the DDC channel       (default: DP-1)
+#   MONITOR_VCP     feature code, decimal or 0xFF form            (default: 0x60)
+#   MONITOR_HDMI    VCP 0x60 value of the HDMI input              (default: 17)
+#   MONITOR_DP      VCP 0x60 value of the DisplayPort input       (default: 15)
+#   MONITOR_VGA     VCP 0x60 value of the VGA input               (default: 1)
+#
+# The script looks for monitor-control next to itself first, so a checkout under ~/.local/bin works
+# without ~/.local/bin being in PATH.
 
 set -uo pipefail
+
+# shellcheck source=/dev/null
+conf=${XDG_CONFIG_HOME:-$HOME/.config}/monitor-input.conf
+[[ -r $conf ]] && . "$conf"
 
 output=${MONITOR_OUTPUT:-DP-1}
 feature=${MONITOR_VCP:-0x60}
 
-# VCP 0x60 values of the ASUS VG249, in the decimal form monitor-control(1) expects.
-declare -A VALUE=([hdmi]=17 [dp]=15 [vga]=1)
-declare -A NAME=([17]=HDMI-1 [15]=DisplayPort-1 [1]=VGA-1)
+# VCP 0x60 values in the decimal form monitor-control(1) expects.
+declare -A VALUE=([hdmi]=${MONITOR_HDMI:-17} [dp]=${MONITOR_DP:-15} [vga]=${MONITOR_VGA:-1})
+declare -A NAME=(
+	[${VALUE[hdmi]}]=HDMI-1
+	[${VALUE[dp]}]=DisplayPort-1
+	[${VALUE[vga]}]=VGA-1
+)
+
+self_directory=$(dirname "$(readlink -f -- "$0")")
+if [[ -x $self_directory/monitor-control ]]; then
+	monitor_control=$self_directory/monitor-control
+else
+	monitor_control=monitor-control
+fi
 
 die() {
 	printf 'monitor-input: %s\n' "$*" >&2
@@ -36,12 +57,12 @@ usage() {
 }
 
 # Reads the current value of the feature. The DDC read is a single exchange with no retry in
-# monitor-control, and this monitor answers with a short or malformed frame now and then, so give
-# it a few tries before reporting the output as unreachable.
+# monitor-control, and a monitor answers with a short or malformed frame now and then, so give it a
+# few tries before reporting the output as unreachable.
 read_current() {
 	local attempt raw
 	for attempt in 1 2 3; do
-		if raw=$(monitor-control "$output" "$feature" 2>/dev/null); then
+		if raw=$("$monitor_control" "$output" "$feature" 2>/dev/null); then
 			printf '%s\n' "${raw%% *}"
 			return 0
 		fi
@@ -52,7 +73,7 @@ read_current() {
 
 set_input() {
 	local label=$1 value=$2 err
-	if ! err=$(monitor-control "$output" "$feature" "$value" 2>&1 >/dev/null); then
+	if ! err=$("$monitor_control" "$output" "$feature" "$value" 2>&1 >/dev/null); then
 		printf 'monitor-input: setting %s on %s failed: %s\n' "$label" "$output" \
 			"${err:-no error message}" >&2
 		return 1

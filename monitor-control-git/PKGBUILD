@@ -16,11 +16,12 @@
 #   monitor-control DP-1 0x60        # prints "<value> <max>", 15 on the VG249 while DP is active
 #   monitor-input status             # prints "DisplayPort-1"
 #
-# monitor-input hard-codes the VCP 0x60 values of one monitor (ASUS VG249: 15 DisplayPort-1,
-# 17 HDMI-1, 1 VGA-1) and the output that carries its DDC channel (DP-1). Override the last two
-# with MONITOR_VCP and MONITOR_OUTPUT; for another monitor, edit the VALUE/NAME tables in the
-# script. Values are monitor specific and cannot be derived without reading the capabilities, which
-# monitor-control deliberately does not do.
+# monitor-input ships with the VCP 0x60 values of one monitor (ASUS VG249: 15 DisplayPort-1,
+# 17 HDMI-1, 1 VGA-1) and the output that carries its DDC channel (DP-1). Values are monitor
+# specific and cannot be derived without reading capabilities, which monitor-control deliberately
+# does not do, so another monitor or host is configured in ~/.config/monitor-input.conf:
+#   MONITOR_OUTPUT=HDMI-A-1   MONITOR_HDMI=17   MONITOR_DP=15   MONITOR_VGA=1
+# Environment variables take precedence over that file, and the file over the defaults.
 
 pkgname=monitor-control-git
 pkgver=r15.d8efd61
@@ -38,7 +39,7 @@ options=('!lto' '!debug')
 source=("$pkgname::git+https://github.com/lilydjwg/monitor-control.git"
         'monitor-input')
 sha256sums=('SKIP'
-            '70ec0db83e7dce6bd199c5ab2ffd8a5d2131375ac58532ac19ded29cc2038e26')
+            'b2223de6f49a307339f6f29c0738bb5372483d4f21f14c3fbd7145a4a6766470')
 
 pkgver() {
   cd "$pkgname"
