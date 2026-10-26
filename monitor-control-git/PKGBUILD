@@ -48,7 +48,7 @@ source=("$pkgname::git+https://github.com/lilydjwg/monitor-control.git"
         'monitor-input'
         '60-monitor-control-i2c.rules')
 sha256sums=('SKIP'
-            'b2223de6f49a307339f6f29c0738bb5372483d4f21f14c3fbd7145a4a6766470'
+            '979cc8e6fa0d8b407b2229174edd14569cd267f5ebfd5376e2cbd9cca2cc73ae'
             'e8786e2c249497ecc08bbd156ee6429d1db8c0fd403914be0009accc6b390fe6')
 
 pkgver() {

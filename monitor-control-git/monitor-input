@@ -57,16 +57,17 @@ usage() {
 }
 
 # Reads the current value of the feature. The DDC read is a single exchange with no retry in
-# monitor-control, and a monitor answers with a short or malformed frame now and then, so give it a
-# few tries before reporting the output as unreachable.
+# monitor-control, and a monitor answers with a short or malformed frame now and then, most of all
+# for the first moments after an input switch, so retry for about a second before reporting the
+# output as unreachable.
 read_current() {
 	local attempt raw
-	for attempt in 1 2 3; do
+	for attempt in 1 2 3 4 5 6; do
 		if raw=$("$monitor_control" "$output" "$feature" 2>/dev/null); then
 			printf '%s\n' "${raw%% *}"
 			return 0
 		fi
-		sleep 0.08
+		sleep 0.25
 	done
 	return 1
 }
