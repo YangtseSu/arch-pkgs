@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 Yangtse Su <yangtsesu@gmail.com>
+# SPDX-License-Identifier: 0BSD
+
+# pacman's udev hook reloads the rule files but does not re-add the devices, and the uaccess ACL is
+# handed out when a device is added. Trigger the i2c buses so the rule applies without a reboot.
+post_install() {
+  udevadm control --reload
+  udevadm trigger --action=add --subsystem-match=i2c-dev
+}
+
+post_upgrade() {
+  post_install
+}

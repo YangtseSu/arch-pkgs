@@ -39,3 +39,7 @@
 
 # monitor-control-git's input switcher wrapper is a local source too.
 !/monitor-control-git/monitor-input
+
+# monitor-control-git's udev rule and install scriptlet are local sources too.
+!/monitor-control-git/60-monitor-control-i2c.rules
+!/monitor-control-git/monitor-control-git.install

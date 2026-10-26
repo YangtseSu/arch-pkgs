@@ -10,9 +10,16 @@
 #   monitor-control  upstream: get or set one VCP feature on one output, one DDC frame, no scan
 #   monitor-input    a wrapper that selects the input source (VCP 0x60) of one monitor
 #
+# monitor-control opens /dev/i2c-<n>, which the kernel creates as root:root 0600. The package
+# therefore installs 60-monitor-control-i2c.rules, which tags the buses with uaccess so that
+# systemd-logind grants an ACL to the active local session user; ddcutil is not needed for this and
+# is not a dependency. pacman's udev hook only reloads rule files, so the .install scriptlet
+# re-triggers the i2c devices to apply the ACL without a reboot.
+#
 # Verified with:
 #   namcap PKGBUILD
 #   makepkg -f && namcap monitor-control-git-*.pkg.tar.zst
+#   udevadm verify 60-monitor-control-i2c.rules
 #   monitor-control DP-1 0x60        # prints "<value> <max>", 15 on the VG249 while DP is active
 #   monitor-input status             # prints "DisplayPort-1"
 #
@@ -35,11 +42,14 @@ makedepends=('cargo' 'git' 'rust')
 provides=('monitor-control')
 conflicts=('monitor-control')
 options=('!lto' '!debug')
+install=$pkgname.install
 
 source=("$pkgname::git+https://github.com/lilydjwg/monitor-control.git"
-        'monitor-input')
+        'monitor-input'
+        '60-monitor-control-i2c.rules')
 sha256sums=('SKIP'
-            'b2223de6f49a307339f6f29c0738bb5372483d4f21f14c3fbd7145a4a6766470')
+            'b2223de6f49a307339f6f29c0738bb5372483d4f21f14c3fbd7145a4a6766470'
+            'e8786e2c249497ecc08bbd156ee6429d1db8c0fd403914be0009accc6b390fe6')
 
 pkgver() {
   cd "$pkgname"
@@ -57,5 +67,7 @@ package() {
   install -Dm755 "target/${CARCH}-unknown-linux-gnu/release/monitor-control" \
     "$pkgdir/usr/bin/monitor-control"
   install -Dm755 "$srcdir/monitor-input" "$pkgdir/usr/bin/monitor-input"
+  install -Dm644 "$srcdir/60-monitor-control-i2c.rules" \
+    "$pkgdir/usr/lib/udev/rules.d/60-monitor-control-i2c.rules"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

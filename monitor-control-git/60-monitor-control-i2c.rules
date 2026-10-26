@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2026 Yangtse Su <yangtsesu@gmail.com>
+# SPDX-License-Identifier: 0BSD
+#
+# monitor-control opens /dev/i2c-<n> to speak DDC/CI. The kernel creates those nodes as
+# root:root 0600, so a session user cannot open them without help.
+#
+# TAG+="uaccess" lets systemd-logind grant a read-write ACL to the user of the active local
+# session, which is what ddcutil's own rule does. The ACL follows the uid, so any process of that
+# user can open the bus while the user is logged in on the seat.
+#
+# The group alternative is deliberately not enabled here, because it only becomes useful together
+# with `usermod -aG i2c` and a new login:
+#   SUBSYSTEM=="i2c-dev", KERNEL=="i2c-[0-9]*", GROUP="i2c", MODE="0660"
+# Use it in /etc/udev/rules.d/ when access has to work without a local seat session (pure SSH, or
+# machines that return transitory EACCES from the I2C bus right after resume).
+
+SUBSYSTEM=="i2c-dev", KERNEL=="i2c-[0-9]*", TAG+="uaccess"

@@ -7,7 +7,7 @@ My personal Arch Linux PKGBUILDs. These packages are not in the AUR, except wher
 | Package | Upstream | Description |
 | --- | --- | --- |
 | [cirrocast-git](cirrocast-git/) | <https://github.com/YangtseSu/cirrocast> | Terminal weather client with pluggable backends |
-| [monitor-control-git](monitor-control-git/) | <https://github.com/lilydjwg/monitor-control> | Fast get/set of one DDC/CI monitor value, plus `monitor-input` to switch the input source (VCP 0x60) with one key |
+| [monitor-control-git](monitor-control-git/) | <https://github.com/lilydjwg/monitor-control> | Fast get/set of one DDC/CI monitor value, plus `monitor-input` to switch the input source (VCP 0x60) with one key; ships the udev `uaccess` rule that replaces ddcutil's, so `/dev/i2c-*` is reachable without the `i2c` group |
 | [atrust](atrust/) | <https://www.sangfor.com/> | Sangfor aTrust SDP client (repack of the vendor deb; bundled Electron kept, root daemon started and stopped by the tray launcher, bundled-curl/SQLCipher preloads and the libmmkv exec-stack patch applied) |
 | [zlib-git](zlib-git/) | <https://github.com/heartleo/zlib> | Command-line tool for Z-Library |
 | [zju-connect-git](zju-connect-git/) | <https://github.com/YangtseSu/zju-connect> | Go client for ZJU RVPN and Sangfor aTrust gateways, built from the fork that integrates every change of ours on its `dev` branch |
