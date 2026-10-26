@@ -20,7 +20,7 @@
 #     namcap cannot see them as needed; removing them breaks the window/tray.
 
 pkgname=gotrust-git
-pkgver=r67.g9d9b092
+pkgver=r68.g3fe660b
 pkgrel=1
 pkgdesc='Tray app for Sangfor aTrust gateways with local SOCKS5 and HTTP proxies'
 arch=('x86_64' 'aarch64')
