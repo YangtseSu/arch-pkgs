@@ -2,16 +2,20 @@
 # SPDX-FileCopyrightText: 2026 Yangtse Su <yangtsesu@gmail.com>
 # SPDX-License-Identifier: 0BSD
 #
-# Builds the tip of the upstream repository on branch main. The clone goes over
-# SSH: the repository is private, and makepkg runs git with
-# GIT_CONFIG_GLOBAL=/dev/null, which drops every credential helper but keeps the
-# agent socket. Everything the build needs is in that repository: no local
-# checkout and no sibling directory. The packaged program is AGPL-3.0-or-later;
-# the packaging files are 0BSD.
+# Builds the tip of the upstream repository on branch main into two packages:
+# gotrust-git for the tray app and gotrust-cli-git for the headless front-end.
+# The split exists because the tray app loads GTK and the appindicator library
+# at runtime, which a headless host has no reason to install; both binaries
+# come from one checkout and one test run.
+#
+# The clone goes over HTTPS now that the repository is public, so makepkg's
+# GIT_CONFIG_GLOBAL=/dev/null (which drops every credential helper) is no
+# longer a problem. Everything the build needs is in that repository: no local
+# checkout and no sibling directory.
 #
 # Verified with:
 #   namcap PKGBUILD
-#   makepkg -f && namcap gotrust-git-*.pkg.tar.zst
+#   makepkg -f && namcap gotrust-git-*.pkg.tar.zst gotrust-cli-git-*.pkg.tar.zst
 #
 # namcap keeps two kinds of warning, both intentional:
 #   * libresolv "unused" and glibc "implicitly satisfied" come from the
@@ -19,24 +23,22 @@
 #   * gtk3 and libayatana-appindicator are loaded with purego at runtime, so
 #     namcap cannot see them as needed; removing them breaks the window/tray.
 
-pkgname=gotrust-git
-pkgver=r77.gf10bfe0
+pkgbase=gotrust-git
+pkgname=('gotrust-git' 'gotrust-cli-git')
+pkgver=r80.gf2ef7b8
 pkgrel=1
 pkgdesc='Tray app for Sangfor aTrust gateways with local SOCKS5 and HTTP proxies'
 arch=('x86_64' 'aarch64')
 url='https://github.com/YangtseSu/goTrust'
 license=('AGPL-3.0-or-later')
-depends=('glibc' 'gtk3' 'libayatana-appindicator' 'hicolor-icon-theme')
 makedepends=('gcc' 'git' 'go')
-provides=('gotrust')
-conflicts=('gotrust')
 options=('!debug')
 _branch=main
-source=("$pkgname::git+ssh://git@github.com/YangtseSu/goTrust.git#branch=$_branch")
+source=("$pkgbase::git+https://github.com/YangtseSu/goTrust.git#branch=$_branch")
 sha256sums=('SKIP')
 
 prepare() {
-  cd "$pkgname"
+  cd "$pkgbase"
   # Fetch modules here so build() needs no network: a clean chroot has none
   # once checksumming and cloning are done. The tree carries no local replace
   # and no absolute home path.
@@ -44,30 +46,39 @@ prepare() {
 }
 
 pkgver() {
-  cd "$pkgname"
+  cd "$pkgbase"
   printf 'r%s.g%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
 }
 
 build() {
-  cd "$pkgname"
+  cd "$pkgbase"
   # cgo is only for the external linker, which applies FULL RELRO; the app
   # loads GTK and the tray through purego, so no cgo code runs.
   export CGO_ENABLED=1
-  go build \
-    -trimpath \
-    -buildmode=pie \
-    -ldflags "-s -w -linkmode=external -extldflags=-Wl,-z,relro,-z,now" \
-    -o gotrust \
-    .
+  build_binary() {
+    go build \
+      -trimpath \
+      -buildmode=pie \
+      -ldflags "-s -w -linkmode=external -extldflags=-Wl,-z,relro,-z,now" \
+      -o "$1" \
+      "$2"
+  }
+  build_binary gotrust ./cmd/gotrust
+  build_binary gotrust-cli ./cmd/gotrust-cli
 }
 
 check() {
-  cd "$pkgname"
+  cd "$pkgbase"
   go test ./...
 }
 
-package() {
-  cd "$pkgname"
+package_gotrust-git() {
+  pkgdesc='Tray app for Sangfor aTrust gateways with local SOCKS5 and HTTP proxies'
+  depends=('glibc' 'gtk3' 'libayatana-appindicator' 'hicolor-icon-theme')
+  provides=('gotrust')
+  conflicts=('gotrust')
+
+  cd "$pkgbase"
   install -Dm755 gotrust "$pkgdir/usr/bin/gotrust"
 
   # The desktop entry and the icons ship with the source tree, so the package
@@ -81,5 +92,16 @@ package() {
   install -Dm644 data/icons/hicolor/symbolic/apps/gotrust-symbolic.svg \
     "$pkgdir/usr/share/icons/hicolor/symbolic/apps/gotrust-symbolic.svg"
 
-  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/gotrust-git/LICENSE"
+}
+
+package_gotrust-cli-git() {
+  pkgdesc='Headless front-end for Sangfor aTrust gateways with local SOCKS5 and HTTP proxies'
+  depends=('glibc')
+  provides=('gotrust-cli')
+  conflicts=('gotrust-cli')
+
+  cd "$pkgbase"
+  install -Dm755 gotrust-cli "$pkgdir/usr/bin/gotrust-cli"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/gotrust-cli-git/LICENSE"
 }
