@@ -2,25 +2,25 @@
 # SPDX-FileCopyrightText: 2026 Yangtse Su <yangtsesu@gmail.com>
 # SPDX-License-Identifier: 0BSD
 #
-# Builds the tip of the local goTrust checkout on branch main. makepkg runs git
-# with GIT_CONFIG_GLOBAL=/dev/null, so a private GitHub HTTPS clone cannot use
-# the user's credential helper; the local file source is the working path for
-# this self-use package. When the repository is public, switch the source to
-# git+https://github.com/YangtseSu/goTrust.git#branch=main. The packaged program
-# is AGPL-3.0-or-later; the packaging files are 0BSD.
+# Builds the tip of the upstream repository on branch main. The clone goes over
+# SSH: the repository is private, and makepkg runs git with
+# GIT_CONFIG_GLOBAL=/dev/null, which drops every credential helper but keeps the
+# agent socket. Everything the build needs is in that repository: no local
+# checkout and no sibling directory. The packaged program is AGPL-3.0-or-later;
+# the packaging files are 0BSD.
 #
 # Verified with:
 #   namcap PKGBUILD
 #   makepkg -f && namcap gotrust-git-*.pkg.tar.zst
 #
 # namcap keeps two kinds of warning, both intentional:
-#   * libdl/libpthread "unused" and glibc "implicitly satisfied" come from the
+#   * libresolv "unused" and glibc "implicitly satisfied" come from the
 #     external linker; glibc is listed explicitly for clarity.
 #   * gtk3 and libayatana-appindicator are loaded with purego at runtime, so
 #     namcap cannot see them as needed; removing them breaks the window/tray.
 
 pkgname=gotrust-git
-pkgver=r68.g3fe660b
+pkgver=r77.gf10bfe0
 pkgrel=1
 pkgdesc='Tray app for Sangfor aTrust gateways with local SOCKS5 and HTTP proxies'
 arch=('x86_64' 'aarch64')
@@ -32,17 +32,14 @@ provides=('gotrust')
 conflicts=('gotrust')
 options=('!debug')
 _branch=main
-source=("$pkgname::git+file://$HOME/projects/goTrust#branch=$_branch")
+source=("$pkgname::git+ssh://git@github.com/YangtseSu/goTrust.git#branch=$_branch")
 sha256sums=('SKIP')
 
 prepare() {
   cd "$pkgname"
-  # go.mod points at ../atrust-dev/zju-connect for the local fork. The source
-  # clone lives under $srcdir/$pkgname, so link the sibling path the replace
-  # expects; the repository itself carries no absolute home path.
-  ln -sfn "$HOME/projects/atrust-dev" "$srcdir/atrust-dev"
   # Fetch modules here so build() needs no network: a clean chroot has none
-  # once checksumming and cloning are done.
+  # once checksumming and cloning are done. The tree carries no local replace
+  # and no absolute home path.
   go mod download
 }
 
