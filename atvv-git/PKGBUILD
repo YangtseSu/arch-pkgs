@@ -2,36 +2,46 @@
 # SPDX-FileCopyrightText: 2026 Yangtse Su <yangtsesu@gmail.com>
 # SPDX-License-Identifier: 0BSD
 #
-# Tracks the tip of the default branch. The tagged release package is `atvv`
-# in the AUR; this recipe stays in the personal packaging repository.
+# One pkgbase for the daemon/CLI/MCP and the GTK app. One Cargo invocation
+# builds both, so the shared dependency graph is compiled once. Tracks the
+# default branch; the tagged release package is `atvv` in the AUR.
 
-pkgname=atvv-git
+pkgbase=atvv-git
+pkgname=('atvv-git' 'atvv-gui-git')
 pkgver=0.1.0
 pkgrel=1
-pkgdesc='Bluetooth voice remote userspace stack (git)'
 arch=('x86_64' 'aarch64')
 url='https://github.com/YangtseSu/atvv-linux'
 license=('GPL-3.0-or-later')
-depends=('pipewire' 'bluez' 'dbus')
-makedepends=('clang' 'pkgconf' 'rust' 'git')
-provides=('atvv')
-conflicts=('atvv')
+makedepends=('clang' 'pkgconf' 'rust' 'git' 'gtk4' 'libadwaita' 'bluez')
 options=('!debug')
-source=("$pkgname::git+https://github.com/YangtseSu/atvv-linux.git")
+source=("$pkgbase::git+https://github.com/YangtseSu/atvv-linux.git")
 sha256sums=('SKIP')
 
 pkgver() {
-  cd "$pkgname"
+  cd "$pkgbase"
   git describe --long --tags --abbrev=7 | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
 }
 
-build() {
-  cd "$pkgname"
-  cargo build --release --locked -p atvv-daemon -p atvv-cli -p atvv-mcp --bins
+prepare() {
+  cd "$pkgbase"
+  cargo fetch --locked
 }
 
-package() {
-  cd "$pkgname"
+build() {
+  cd "$pkgbase"
+  cargo build --release --offline --locked \
+    -p atvv-daemon -p atvv-cli -p atvv-mcp -p atvv-gui --bins
+}
+
+# No check(): the project CI owns the workspace tests.
+
+package_atvv-git() {
+  pkgdesc='Bluetooth voice remote userspace stack (git)'
+  depends=('pipewire' 'bluez' 'dbus')
+  provides=("atvv=$pkgver")
+  conflicts=('atvv')
+  cd "$pkgbase"
 
   install -Dm755 target/release/atvvd "$pkgdir/usr/bin/atvvd"
   install -Dm755 target/release/atvvctl "$pkgdir/usr/bin/atvvctl"
@@ -69,6 +79,28 @@ package() {
   install -Dm644 docs/configuration.zh-CN.md \
     "$pkgdir/usr/share/doc/$pkgname/docs/configuration.zh-CN.md"
 
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 THIRD-PARTY-NOTICES.md \
+    "$pkgdir/usr/share/licenses/$pkgname/THIRD-PARTY-NOTICES.md"
+}
+
+package_atvv-gui-git() {
+  pkgdesc='GTK4/libadwaita configuration app for ATVV remotes (git)'
+  depends=('gtk4' 'libadwaita' 'librsvg' 'atvv-git')
+  provides=("atvv-gui=$pkgver")
+  conflicts=('atvv-gui')
+  cd "$pkgbase"
+
+  install -Dm755 target/release/atvv-config "$pkgdir/usr/bin/atvv-config"
+  install -Dm644 packaging/gui/org.atvv.Config.desktop \
+    "$pkgdir/usr/share/applications/org.atvv.Config.desktop"
+  install -Dm644 packaging/gui/org.atvv.Config.metainfo.xml \
+    "$pkgdir/usr/share/metainfo/org.atvv.Config.metainfo.xml"
+  install -Dm644 packaging/gui/org.atvv.Config.svg \
+    "$pkgdir/usr/share/icons/hicolor/scalable/apps/org.atvv.Config.svg"
+
+  install -Dm644 docs/gui.md "$pkgdir/usr/share/doc/$pkgname/gui.md"
+  install -Dm644 docs/gui.zh-CN.md "$pkgdir/usr/share/doc/$pkgname/gui.zh-CN.md"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   install -Dm644 THIRD-PARTY-NOTICES.md \
     "$pkgdir/usr/share/licenses/$pkgname/THIRD-PARTY-NOTICES.md"
