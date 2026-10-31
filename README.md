@@ -6,6 +6,8 @@ My personal Arch Linux PKGBUILDs. These packages are not in the AUR, except wher
 
 | Package | Upstream | Description |
 | --- | --- | --- |
+| [atvv-git](atvv-git/) | <https://github.com/YangtseSu/atvv-linux> | ATVV v1.0 userspace stack for Bluetooth voice remotes: daemon, CLI, and MCP server |
+| [atvv-gui-git](atvv-gui-git/) | <https://github.com/YangtseSu/atvv-linux> | GTK4/libadwaita configuration app for ATVV remotes; depends on `atvv-git` |
 | [cirrocast-git](cirrocast-git/) | <https://github.com/YangtseSu/cirrocast> | Terminal weather client with pluggable backends |
 | [monitor-control-git](monitor-control-git/) | <https://github.com/lilydjwg/monitor-control> | Fast get/set of one DDC/CI monitor value, plus `monitor-input` to switch the input source (VCP 0x60) with one key; ships the udev `uaccess` rule that replaces ddcutil's, so `/dev/i2c-*` is reachable without the `i2c` group |
 | [atrust](atrust/) | <https://www.sangfor.com/> | Sangfor aTrust SDP client (repack of the vendor deb; bundled Electron kept, root daemon started and stopped by the tray launcher, bundled-curl/SQLCipher preloads and the libmmkv exec-stack patch applied) |
