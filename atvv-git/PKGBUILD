@@ -8,12 +8,19 @@
 
 pkgbase=atvv-git
 pkgname=('atvv-git' 'atvv-gui-git')
-pkgver=0.1.0
-pkgrel=1
+pkgver=0.3.1.r2.g72835d4
+pkgrel=2
 arch=('x86_64' 'aarch64')
 url='https://github.com/YangtseSu/atvv-linux'
 license=('GPL-3.0-or-later')
-makedepends=('clang' 'pkgconf' 'rust' 'git' 'gtk4' 'libadwaita' 'bluez')
+# clang: bindgen generates the PipeWire/SPA bindings. The -sys crates probe
+# their pkg-config modules (libpipewire-0.3, libspa-0.2, dbus-1, gtk4,
+# libadwaita-1, gdk-pixbuf-2.0, pango, cairo, graphene-gobject-1.0, gio-2.0);
+# each module's package is either named here or pulled in by one of these
+# (gtk4 alone brings glib2, cairo, pango, gdk-pixbuf2, graphene and systemd-libs).
+# pkgconf comes from base-devel. Nothing reads bluez.pc, so bluez stays a
+# runtime-only entry.
+makedepends=('clang' 'dbus' 'git' 'gtk4' 'libadwaita' 'libpipewire' 'rust')
 options=('!debug')
 source=("$pkgbase::git+https://github.com/YangtseSu/atvv-linux.git")
 sha256sums=('SKIP')
@@ -38,7 +45,21 @@ build() {
 
 package_atvv-git() {
   pkgdesc='Bluetooth voice remote userspace stack (git)'
-  depends=('pipewire' 'bluez' 'dbus')
+  # Direct NEEDED entries plus the two services the binaries talk to: atvvd owns
+  # the Audio/Source on the PipeWire graph and the GATT transport over bluez'
+  # bluetoothd, so both are runtime requirements, not transitive ones. Each
+  # linked soname (libdbus-1.so.3, libpipewire-0.3.so.0, libc) comes from a
+  # package named here, so the soname is not repeated in the array.
+  depends=(
+    bluez
+    dbus
+    glibc
+    libgcc
+    libpipewire
+    pipewire
+  )
+  # `atvvctl record --wav` shells out to pw-cat, which ships in pipewire-audio.
+  optdepends=('pipewire-audio: capture diagnostics through pw-cat')
   provides=("atvv=$pkgver")
   conflicts=('atvv')
   cd "$pkgbase"
@@ -68,16 +89,11 @@ package_atvv-git() {
   ./target/release/atvvctl completions fish \
     >"$pkgdir/usr/share/fish/vendor_completions.d/atvvctl.fish"
 
-  install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
-  install -Dm644 README.zh-CN.md "$pkgdir/usr/share/doc/$pkgname/README.zh-CN.md"
-  install -Dm644 docs/device-support.md \
-    "$pkgdir/usr/share/doc/$pkgname/docs/device-support.md"
-  install -Dm644 docs/device-support.zh-CN.md \
-    "$pkgdir/usr/share/doc/$pkgname/docs/device-support.zh-CN.md"
-  install -Dm644 docs/configuration.md \
-    "$pkgdir/usr/share/doc/$pkgname/docs/configuration.md"
-  install -Dm644 docs/configuration.zh-CN.md \
-    "$pkgdir/usr/share/doc/$pkgname/docs/configuration.zh-CN.md"
+  # The whole docs tree, not a hand-picked list: the guides cross-reference
+  # decisions/, plans/, research/ and acceptance/, so a subset would ship
+  # dangling links and would need editing on every upstream doc rename.
+  install -d "$pkgdir/usr/share/doc/$pkgname"
+  cp -r README.md README.zh-CN.md docs "$pkgdir/usr/share/doc/$pkgname/"
 
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   install -Dm644 THIRD-PARTY-NOTICES.md \
@@ -86,7 +102,21 @@ package_atvv-git() {
 
 package_atvv-gui-git() {
   pkgdesc='GTK4/libadwaita configuration app for ATVV remotes (git)'
-  depends=('gtk4' 'libadwaita' 'librsvg' 'atvv-git')
+  # Direct NEEDED entries plus the daemon, which owns the D-Bus API this app
+  # drives; `atvv-config` renders nothing but that API. librsvg arrives through
+  # gtk4 for the SVG icon, so it is not listed on its own. Each linked soname
+  # (libgtk-4.so.1, libadwaita-1.so.0, libgraphene-1.0.so.0, libgio/libglib/
+  # libgobject) comes from a package named here.
+  depends=(
+    "atvv-git=$pkgver"
+    glib2
+    glibc
+    graphene
+    gtk4
+    hicolor-icon-theme
+    libadwaita
+    libgcc
+  )
   provides=("atvv-gui=$pkgver")
   conflicts=('atvv-gui')
   cd "$pkgbase"
@@ -99,8 +129,10 @@ package_atvv-gui-git() {
   install -Dm644 packaging/gui/org.atvv.Config.svg \
     "$pkgdir/usr/share/icons/hicolor/scalable/apps/org.atvv.Config.svg"
 
-  install -Dm644 docs/gui.md "$pkgdir/usr/share/doc/$pkgname/gui.md"
-  install -Dm644 docs/gui.zh-CN.md "$pkgdir/usr/share/doc/$pkgname/gui.zh-CN.md"
+  # No documentation here: docs/gui.md and its screenshots ship in atvv-git,
+  # which this package already requires, so README's link resolves for either
+  # install order. The license text is repeated because the app is a separate
+  # binary and must carry its own copy.
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   install -Dm644 THIRD-PARTY-NOTICES.md \
     "$pkgdir/usr/share/licenses/$pkgname/THIRD-PARTY-NOTICES.md"
