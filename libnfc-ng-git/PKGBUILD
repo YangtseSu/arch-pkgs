@@ -1,0 +1,92 @@
+# Maintainer: yangtse <yangtse at users.noreply.github.com>
+#
+# NFC Foundry's libnfc fork. The package installs a unique library identity
+# (libnfcng.so.6, pkg-config libnfc-ng, headers under /usr/include/libnfc-ng)
+# so it coexists with Arch's libnfc package.
+#
+# The driver set is the NFC Foundry initial profile, not the library default.
+# libnfc-ng keeps the upstream default set and still accepts
+# --with-drivers=all; the explicit selection below belongs to this package.
+
+pkgname=libnfc-ng-git
+pkgver=1.8.0.ng.1.r0.gc1eb612
+pkgrel=1
+pkgdesc='Near Field Communication library fork used by NFC Foundry'
+arch=('x86_64')
+url='https://github.com/YangtseSu/libnfc-ng'
+license=('LGPL-3.0-or-later')
+depends=('glibc' 'libusb-compat' 'pcsclite')
+makedepends=('git')
+provides=("libnfc-ng=$pkgver" 'libnfcng.so=6-64')
+conflicts=('libnfc-ng')
+options=('!libtool')
+source=("$pkgname::git+https://github.com/YangtseSu/libnfc-ng.git")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "$pkgname"
+  git describe --long --tags --abbrev=7 |
+    sed -E 's/^(v|libnfc-)//; s/-([0-9]+)-g([0-9a-f]+)$/.r\1.g\2/; s/-/./g'
+}
+
+build() {
+  cd "$pkgname"
+  autoreconf -fi
+  ./configure \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --enable-shared \
+    --disable-static \
+    --disable-conffiles \
+    --enable-envvars \
+    --with-drivers=pn532_uart,pn53x_usb,acr122_usb,acr122_pcsc,pcsc
+  make
+}
+
+check() {
+  cd "$pkgname"
+  cat > "$srcdir/libnfc-ng-smoke.c" <<'EOF'
+#include <nfc/nfc.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+
+int
+main(int argc, char **argv)
+{
+  if (argc != 2)
+    return 2;
+
+  const size_t expected = (size_t)strtoul(argv[1], NULL, 10);
+  nfc_context *context = NULL;
+  nfc_connstring devices[8];
+
+  nfc_init(&context);
+  if (context == NULL) {
+    fputs("nfc_init returned no context\n", stderr);
+    return 1;
+  }
+
+  const size_t count = nfc_list_devices(context, devices, 8);
+  printf("version=%s devices=%zu\n", nfc_version(), count);
+  nfc_exit(context);
+  return count == expected ? 0 : 1;
+}
+EOF
+  cc "$srcdir/libnfc-ng-smoke.c" -Iinclude -Llibnfc/.libs -lnfcng -o "$srcdir/libnfc-ng-smoke"
+  env -u LIBNFC_DEVICE -u LIBNFC_DEFAULT_DEVICE \
+    LIBNFC_AUTO_SCAN=false LIBNFC_INTRUSIVE_SCAN=false \
+    LD_LIBRARY_PATH="$PWD/libnfc/.libs" \
+    "$srcdir/libnfc-ng-smoke" 0
+  env LIBNFC_DEVICE=pn532_uart:/dev/nfc-ng-smoke-not-opened \
+    LIBNFC_AUTO_SCAN=false LIBNFC_INTRUSIVE_SCAN=false \
+    LD_LIBRARY_PATH="$PWD/libnfc/.libs" \
+    "$srcdir/libnfc-ng-smoke" 1
+}
+
+package() {
+  cd "$pkgname"
+  make DESTDIR="$pkgdir" install
+  install -Dm644 COPYING -t "$pkgdir/usr/share/licenses/$pkgname/"
+  install -Dm644 README.md FORK.md -t "$pkgdir/usr/share/doc/$pkgname/"
+}
