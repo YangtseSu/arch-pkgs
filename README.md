@@ -10,8 +10,12 @@ My personal Arch Linux PKGBUILDs. These packages are not in the AUR, except wher
 | [cirrocast-git](cirrocast-git/) | <https://github.com/YangtseSu/cirrocast> | Terminal weather client with pluggable backends |
 | [libnfc-ng-git](libnfc-ng-git/) | <https://github.com/YangtseSu/libnfc-ng> | libnfc fork used by NFC Foundry; unique `libnfcng.so.6` identity, headers under `libnfc-ng/`, NFC Foundry driver profile |
 | [monitor-control-git](monitor-control-git/) | <https://github.com/lilydjwg/monitor-control> | Fast get/set of one DDC/CI monitor value, plus `monitor-input` to switch the input source (VCP 0x60) with one key; ships the udev `uaccess` rule that replaces ddcutil's, so `/dev/i2c-*` is reachable without the `i2c` group |
+| [nfc-foundry-git](nfc-foundry-git/) | <https://github.com/YangtseSu/nfc-foundry> | Development build of NFC Foundry, the GTK4 reader workbench for MIFARE Classic and Type 2/NDEF cards; provides and conflicts with the AUR release package `nfc-foundry` |
 | [atrust](atrust/) | <https://www.sangfor.com/> | Sangfor aTrust SDP client (repack of the vendor deb; bundled Electron kept, root daemon started and stopped by the tray launcher, bundled-curl/SQLCipher preloads and the libmmkv exec-stack patch applied) |
 | [zlib-git](zlib-git/) | <https://github.com/heartleo/zlib> | Command-line tool for Z-Library |
+
+The release package `nfc-foundry` is maintained in the AUR, not here:
+<https://aur.archlinux.org/packages/nfc-foundry>.
 
 ## Use
 
